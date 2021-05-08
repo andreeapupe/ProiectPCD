@@ -3,10 +3,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
+
+#include "config/cfg.h"
+
 // MAX = Maximum number of octets
-#define MAX 1024 
-// Used port
-#define PORT 5000
+#define MAX 1024
 #define SA struct sockaddr
 
 
@@ -50,7 +51,7 @@ int main()
 	// assign IP, PORT
 	servaddr.sin_family = AF_INET;
 	servaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-	servaddr.sin_port = htons(PORT);
+	servaddr.sin_port = htons(PORT_STD_CLIENT);
 
 	// connect the client socket to server socket
 	if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
