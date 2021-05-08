@@ -1,0 +1,7 @@
+#define PORT_STD_CLIENT 17555
+#define PORT_ADM_CLIENT 18555
+
+#define MAX_STD_CLIENT_NUMBER 10
+
+#define TRUE 1
+#define FALSE 0

@@ -1,98 +1,83 @@
 #include <stdio.h>
-#include <netdb.h>
-#include <netinet/in.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
+
+// Include for multithreading
+#include <pthread.h>
+
+// Includes for socket communication
 #include <sys/socket.h>
 #include <sys/types.h>
-// MAX = Maximum number of octets
-#define MAX 1024 
-// Used port
-#define PORT 5000
-#define SA struct sockaddr
 
-// For chat between client and server
-void func(int sockfd)
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+// Project specific includes
+#include "config/cfg.h"
+
+char serverResponse[256];
+pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+void* socketThread(void* arg)
 {
-	char buff[MAX];
-	int n;
+    int newSocket = *((int *)arg);
+    char clientMessage[1024];
 
+    recv(newSocket, &clientMessage, 1024, 0);
+    printf("From client: %s\n", clientMessage);
 
-	// Creating an infinite loop for chat between client and server
-	for (;;) {
-		bzero(buff, MAX);
-
-		// Read message from client and copy it in buffer
-		read(sockfd, buff, sizeof(buff));
-
-		// Print buffer after copying
-		printf("\tFROM client: %sTO client: ", buff);
-		bzero(buff, MAX);
-		n = 0;
-
-		// Copy server message in buffer
-		while ((buff[n++] = getchar()) != '\n')
-			;
-
-		// Send buffer to client
-		write(sockfd, buff, sizeof(buff));
-
-		// If one of the messages is "goodbye", server ends the conversation
-		if (strncmp("goodbye", buff, 7) == 0) {
-			printf("Server Exit...\n");
-			break;
-		}
-	}
+    pthread_mutex_lock(&lock);
+    strcat(serverResponse, "From server");
+    sleep(5);
+    pthread_mutex_unlock(&lock);
+    
+    send(newSocket, serverResponse, sizeof(serverResponse), 0);
+    printf("[-]Exit socket thread \n");
+    close(newSocket);
+    pthread_exit(NULL);
 }
 
-
-int main()
+int main(int argv, char* argc[])
 {
-	int sockfd, connfd, len;
-	struct sockaddr_in servaddr, cli;
+    pthread_t tid[60];
+    int i = 0;
+    int server_socket, client_socket;
 
-	// Socket creation
-	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (sockfd == -1) {
-		printf("Socket creation failed...\n");
-		exit(0);
-	}
-	else
-		printf("Socket successfully created..\n");
-	bzero(&servaddr, sizeof(servaddr));
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
 
-	// Assigning IP and a PORT
-	servaddr.sin_family = AF_INET;
-	servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	servaddr.sin_port = htons(PORT);
+    struct sockaddr_in server_address;
+    struct sockaddr_in client_address;
+    struct sockaddr_storage server_storage;
 
-	// Binding socket to IP
-	if ((bind(sockfd, (SA*)&servaddr, sizeof(servaddr))) != 0) {
-		printf("Socket bind failed...\n");
-		exit(0);
-	}
-	else
-		printf("Socket successfully binded..\n");
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(PORT_STD_CLIENT);
+    server_address.sin_addr.s_addr = INADDR_ANY;
 
-	// Check if server is ready to listen
-	if ((listen(sockfd, 5)) != 0) {
-		printf("Listen failed...\n");
-		exit(0);
-	}
-	else
-		printf("Server listening..\n");
-	len = sizeof(cli);
+    int client_address_len = sizeof(client_address);
 
-	// Accept the data packet from client and verification
-	connfd = accept(sockfd, (SA*)&cli, &len);
-	if (connfd < 0) {
-		printf("Server acccept failed...\n");
-		exit(0);
-	}
-	else
-		printf("Server acccepted the client...\n\n");
-	
-	func(connfd);
-	close(sockfd);
+    bind(server_socket, (struct sockaddr *) &server_address, sizeof(server_address));
+
+    listen(server_socket, 5);
+
+    printf("Waiting for connections...\n");
+
+    while(TRUE)
+    {
+        if((client_socket = accept(server_socket, (struct sockaddr*)&client_address, (socklen_t *)&client_address_len)) < 0)
+        {
+            perror("Accept failure\n");
+            exit(EXIT_FAILURE);
+        };
+        
+        printf("New connection from %s:%d\n", inet_ntoa(client_address.sin_addr), (int)client_address.sin_port);
+
+        pthread_t t;
+        int* pclient = malloc(sizeof(int));
+        *pclient = client_socket;
+        pthread_create(&t, NULL, socketThread, pclient);
+    }
+
+    return 0;
+
 }
-
