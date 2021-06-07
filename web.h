@@ -8,6 +8,14 @@
 
 #include <stdbool.h>
 #include <string.h>
+struct reqBody {
+    char key[64];
+    char value[64];
+};
+struct returnExample{
+    char method[6]; //POST/GET
+    struct reqBody bdy[10];
+};
 
 int checkHttpReqType(char req[])
 {
@@ -25,7 +33,7 @@ bool checkHttpReq(char req[])
         return false;
 }
 
-int findMatch(char text[], char pattern[]) {
+int findMatch(char text[], char pattern[],int start) {
     int c, d, e, text_length, pattern_length, position = -1;
 
     text_length    = strlen(text);
@@ -35,7 +43,7 @@ int findMatch(char text[], char pattern[]) {
         return -1;
     }
 
-    for (c = 0; c <= text_length - pattern_length; c++) {
+    for (c = start; c <= text_length - pattern_length; c++) {
         position = e = c;
 
         for (d = 0; d < pattern_length; d++) {
@@ -54,24 +62,43 @@ int findMatch(char text[], char pattern[]) {
     return -1;
 }
 
-void reqToStruct(char req[])
+struct returnExample reqToStruct(char req[])
 {
-    struct reqBody {
-        char key[64];
-        char value[64];
-    };
-    struct returnExample{
-        char method[6]; //POST/GET
-        struct reqBody bdy[10];
-    };
 
    struct returnExample structura;
    char type[5];
    if(checkHttpReqType(req)==1)
-       strncpy(structura.method,req,4);
+       strncpy(structura.method,&req[0],4);
    if(checkHttpReqType(req)==2)
-       strncpy(structura.method,req,3);
+       strncpy(structura.method,&req[0],3);
+    int start = 0,check;
+   int index = findMatch(req,"input",start);
 
+   int indexBdy = 0;
+
+   while(start != sizeof req) {
+       check = start;
+       if (findMatch(req, "input", start) != -1)
+       {
+
+           index = findMatch(req, "input", start);
+           int indexEqual = findMatch(req,"=",index);
+           start = index+1;
+           strncpy(structura.bdy[indexBdy].key, &req[index], indexEqual-index);
+           int indexAnd = findMatch(req,"&",index);
+
+           strncpy(structura.bdy[indexBdy].value, &req[index+7], indexAnd-index-(indexEqual-index)-1);
+
+       }
+       else break;
+       if(check != start)
+           indexBdy++;
+   }
+    printf("method: %s\n",structura.method);
+    for(int i =0;i<indexBdy;i++)
+    printf("%d: %s, %s \n",i,structura.bdy[i].key,structura.bdy[i].value);
+
+    return structura;
 }
 
 
