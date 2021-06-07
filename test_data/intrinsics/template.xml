@@ -1,0 +1,25 @@
+<car>
+    <uid>
+        <model>
+            Dodge
+        </model>
+        <vin>
+            AS8JDM9DEOD8
+        </vin>
+    </uid>
+    
+    <data>
+        <speed>
+            <value>56.6</value>
+            <measureUnit>KM/H</measureUnit>
+        </speed>
+        <datetime>
+            <date>20210413</date>
+            <time>
+                <value>1453</value>
+                <timezone>EEST</timezone>
+            </time>
+        </datetime>
+    </data>
+
+</car>
