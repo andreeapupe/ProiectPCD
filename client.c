@@ -4,6 +4,8 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <getopt.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "config/cfg.h"
 
@@ -13,6 +15,7 @@
 
 void validate_args(int argc, char* argv[], int execMode, char* filename);
 void handle_connection(int sockfd);
+void sendFile();
 
 int main(int argc, char* argv[])
 {
@@ -118,6 +121,10 @@ void handle_connection(int sockfd)
 {
 	char buff[MAX];
 	int n;
+	// todo: send a predefined string first if you want to send a file
+
+	//sendFile(sockfd); // delete the comment if you want to send a file
+
 	for (;;) {
 		bzero(buff, sizeof(buff));
 		printf("You: ");
@@ -133,4 +140,17 @@ void handle_connection(int sockfd)
 			break;
 		}
 	}
+}
+
+void sendFile(int sockfd)
+{
+	int fd;
+    struct stat stbuf;
+
+    fd = open("min2_1.mp4", O_RDONLY); // should be get from command line
+    fstat(fd, &stbuf);
+
+	sendfile(sockfd, fd, 0, stbuf.st_size);
+    close(sockfd);
+    close(fd);
 }
