@@ -145,49 +145,78 @@ char *responseCode(char req[], char code[])
     month = gtime->tm_mon + 1;      // get month of year (0 to 11)
     year = gtime->tm_year + 1900;   // get year since 1900
 
-
-
     char response[1024];
-    if(strcmp(code,"200")==0)
+    if(strcmp(code,"200")==0||strcmp(code,"404")==0)
     {
         char *message;
-        message = "HTTP/1.1 200 OK\n";
-
+        if(strcmp(code,"200")==0)
+            message = "HTTP/1.1 200 OK\n";
+        if(strcmp(code,"404")==0)
+            message = "HTTP/1.1 404 Not Found\n";
         strcpy(response,message);
+        strcat(response, "Date: ");
+        strncat(response, wd(year,month, day),3);
+        strcat(response,", ");
+        concat(response,day);
+
+
+        const char * months[12] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
+        strcat(response," ");
+        strncat(response,months[month],3);
+        strcat(response," ");
+        concat(response,year);
+        strcat(response," ");
+        concat(response,hours-12);
+        strcat(response, ":");
+        concat(response, minutes);
+        strcat(response, ":");
+        concat(response, seconds);
+        strcat(response," GMT\nServer: AlphaCar\n");
+
+        int firstIndex = findMatch(req,"Content-Length:",0);
+        int secondIndex = findMatch(req,"Connection:",0);
+        strncat(response,&req[firstIndex],secondIndex-firstIndex);
+
+        firstIndex = findMatch(req,"Content-Type:",0);
+        secondIndex = findMatch(req,"Content-Length:",0);
+        strncat(response,&req[firstIndex],secondIndex-firstIndex);
+
+        firstIndex = findMatch(req,"Connection:",0);
+        secondIndex = findMatch(req,"Upgrade",0);
+        strncat(response,&req[firstIndex],secondIndex-firstIndex);
+
+
 
 
     }
+    if(strcmp(code,"403")==0)
+    {
+        char *message;
+        message = "HTTP/1.1 403 Forbiden\n";
 
-    strcat(response, "Date: ");
-    strncat(response, wd(year,month, day),3);
-    strcat(response,", ");
-    concat(response,day);
+        strcpy(response,message);
+        strcat(response, "Date: ");
+        strncat(response, wd(year,month, day),3);
+        strcat(response,", ");
+        concat(response,day);
 
 
-    const char * months[12] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
-    strcat(response," ");
-    strncat(response,months[month],3);
-    strcat(response," ");
-    concat(response,year);
-    strcat(response," ");
-    concat(response,hours-12);
-    strcat(response, ":");
-    concat(response, minutes);
-    strcat(response, ":");
-    concat(response, seconds);
-    strcat(response," GMT\nServer: AlphaCar\n");
+        const char * months[12] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
+        strcat(response," ");
+        strncat(response,months[month],3);
+        strcat(response," ");
+        concat(response,year);
+        strcat(response," ");
+        concat(response,hours-12);
+        strcat(response, ":");
+        concat(response, minutes);
+        strcat(response, ":");
+        concat(response, seconds);
+        strcat(response," GMT\n");
 
-    int firstIndex = findMatch(req,"Content-Length:",0);
-    int secondIndex = findMatch(req,"Connection:",0);
-    strncat(response,&req[firstIndex],secondIndex-firstIndex);
+    }
 
-    firstIndex = findMatch(req,"Content-Type:",0);
-    secondIndex = findMatch(req,"Content-Length:",0);
-    strncat(response,&req[firstIndex],secondIndex-firstIndex);
 
-    firstIndex = findMatch(req,"Connection:",0);
-    secondIndex = findMatch(req,"Upgrade",0);
-    strncat(response,&req[firstIndex],secondIndex-firstIndex);
 
 
 
