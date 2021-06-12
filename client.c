@@ -142,7 +142,6 @@ void sendFile(int sockfd)
 
 	FILE *fd1 = fopen("min2_1.mp4", "rb");
 
-	send(sockfd, buff, sizeof(buff), 0);
 	while ((bytesRead = fread(buffer, 1, sizeof(buffer), fd1)) > 0)
 	{
 		send(sockfd, buffer, sizeof(buffer), 0);
