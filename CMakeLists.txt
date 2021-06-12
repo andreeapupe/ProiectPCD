@@ -12,3 +12,4 @@ message("C compiler flags: ${CMAKE_C_FLAGS}")
 
 add_executable(server server.c)
 add_executable(client client.c)
+add_executable(admin admin.c)
