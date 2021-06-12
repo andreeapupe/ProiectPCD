@@ -5,7 +5,7 @@
 
 // Include for multithreading
 #include <pthread.h>
-#include <wait.h>
+#include <sys/wait.h>
 
 // Includes for socket communication
 #include <sys/socket.h>
@@ -20,12 +20,12 @@
 char serverResponse[256];
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-void* socketThread(void* arg);
+void *socketThread(void *arg);
 void write_file(int sockfd);
 int createSocket();
-int isAFile(char* message);
+int isAFile(char *message);
 
-int main(int argv, char* argc[])
+int main(int argv, char *argc[])
 {
     pid_t childId;
 
@@ -57,8 +57,8 @@ int main(int argv, char* argc[])
             int client_address_len = sizeof(client_address);
             int bindValue;
             int listenValue;
-            
-            if ((bindValue = bind(server_socket, (struct sockaddr *) &server_address, sizeof(server_address)) == -1))
+
+            if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
             {
                 perror("Bind error\n");
             };
@@ -70,18 +70,18 @@ int main(int argv, char* argc[])
 
             fprintf(stdout, "Waiting for web client...\n");
 
-            while(TRUE)
+            while (TRUE)
             {
-                if((client_socket = accept(server_socket, (struct sockaddr*)&client_address, (socklen_t *)&client_address_len)) < 0)
+                if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)
                 {
                     perror("Accept failure\n");
                     exit(EXIT_FAILURE);
                 };
-                
+
                 fprintf(stdout, "New connection from %s:%d\n", inet_ntoa(client_address.sin_addr), (int)client_address.sin_port);
 
                 pthread_t t;
-                int* pclient = malloc(sizeof(int));
+                int *pclient = malloc(sizeof(int));
                 *pclient = client_socket;
                 pthread_create(&t, NULL, socketThread, pclient);
             }
@@ -110,8 +110,8 @@ int main(int argv, char* argc[])
 
             int bindValue;
             int listenValue;
-            
-            if ((bindValue = bind(server_socket, (struct sockaddr *) &server_address, sizeof(server_address)) == -1))
+
+            if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
             {
                 perror("Bind error\n");
             };
@@ -123,18 +123,18 @@ int main(int argv, char* argc[])
 
             fprintf(stdout, "Waiting for connections...\n");
 
-            while(TRUE)
+            while (TRUE)
             {
-                if((client_socket = accept(server_socket, (struct sockaddr*)&client_address, (socklen_t *)&client_address_len)) < 0)
+                if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)
                 {
                     perror("Accept failure\n");
                     exit(EXIT_FAILURE);
                 };
-                
+
                 fprintf(stdout, "New connection from %s:%d\n", inet_ntoa(client_address.sin_addr), (int)client_address.sin_port);
 
                 pthread_t t;
-                int* pclient = malloc(sizeof(int));
+                int *pclient = malloc(sizeof(int));
                 *pclient = client_socket;
                 pthread_create(&t, NULL, socketThread, pclient);
             }
@@ -163,31 +163,33 @@ int createSocket()
     return server_socket;
 }
 
-void* socketThread(void* arg)
+void *socketThread(void *arg)
 {
     int newSocket = *((int *)arg);
     char clientMessage[1024];
 
     recv(newSocket, &clientMessage, 1024, 0);
-    printf("From client: %s\n\n", clientMessage);
-
-    if (isAFile(clientMessage) == 1)
+    if (strcmp(clientMessage, "FILE_INCOMING") == 0)
     {
         write_file(newSocket);
+    }
+    else
+    {
+        //printf("From client: %s\n\n", clientMessage);
     }
 
     pthread_mutex_lock(&lock);
     strcpy(serverResponse, "HTTP/1.1 200 OK\r\n\r\n");
     //sleep(5);
     pthread_mutex_unlock(&lock);
-    
+
     send(newSocket, serverResponse, sizeof(serverResponse), 0);
     printf("[-]Exit socket thread \n");
     close(newSocket);
     pthread_exit(NULL);
 }
 
-int isAFile(char* message)
+int isAFile(char *message)
 {
     // dummy
     return 0;
@@ -197,11 +199,12 @@ void write_file(int sockfd)
 {
     int n;
     FILE *fp;
-    char* filename = "file2.mp4"; // filename should be generated
+    char *filename = "file2.mp4"; // filename should be generated
     char buffer[FILE_SIZE_CHUNK];
 
     fp = fopen(filename, "wb");
-    if (fp == NULL) {
+    if (fp == NULL)
+    {
         perror("error at file creation");
         return;
     }
@@ -210,12 +213,14 @@ void write_file(int sockfd)
     {
         n = recv(sockfd, buffer, FILE_SIZE_CHUNK, 0);
         printf("Received: %d bytes\n", n);
-        if (n <= 0) {
+        if (n <= 0)
+        {
             break;
             return;
         }
         fwrite(buffer, n, 1, fp);
         bzero(buffer, FILE_SIZE_CHUNK);
     }
+    fclose(fp);
     return;
 }

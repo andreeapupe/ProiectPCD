@@ -6,6 +6,7 @@
 #include <getopt.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
 
 #include "config/cfg.h"
 
@@ -13,11 +14,11 @@
 #define MAX 1024
 #define SA struct sockaddr
 
-void validate_args(int argc, char* argv[], int execMode, char* filename);
+void validate_args(int argc, char *argv[], int execMode, char *filename);
 void handle_connection(int sockfd);
 void sendFile();
 
-int main(int argc, char* argv[])
+int main(int argc, char *argv[])
 {
 	int sockfd, connfd;
 	int execMode;
@@ -31,7 +32,8 @@ int main(int argc, char* argv[])
 
 	// Socket creation
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	if (sockfd == -1) {
+	if (sockfd == -1)
+	{
 		printf("Socket creation failed...\n");
 		exit(0);
 	}
@@ -48,7 +50,7 @@ int main(int argc, char* argv[])
 	servaddr.sin_port = htons(PORT_STD_CLIENT);
 
 	// connect the client socket to server socket
-	if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) 
+	if (connect(sockfd, (SA *)&servaddr, sizeof(servaddr)) != 0)
 	{
 		printf("Client cannot connect to server...\n");
 		exit(0);
@@ -57,100 +59,106 @@ int main(int argc, char* argv[])
 	{
 		printf("Successfully connected to the server..\n\n");
 	}
-	
+
 	handle_connection(sockfd);
 	close(sockfd);
 }
 
-void validate_args(int argc, char* argv[], int execMode, char* filename)
+void validate_args(int argc, char *argv[], int execMode, char *filename)
 {
 	int c;
 
-    while (1) 
-    {
-        int option_index = 0;
-        static struct option long_options[] = 
-        {
-            {"send",     required_argument, 0,  0 },
-            {"get",      required_argument, 0,  0 },
-            {0,          0,                 0,  0 }
-        };
+	while (1)
+	{
+		int option_index = 0;
+		static struct option long_options[] =
+			{
+				{"send", required_argument, 0, 0},
+				{"get", required_argument, 0, 0},
+				{0, 0, 0, 0}};
 
-        if((c = getopt_long(argc, argv, "s:g:", long_options, &option_index) == -1))
-        {
-            break;
-        }
-
-        switch (c) 
+		if ((c = getopt_long(argc, argv, "s:g:", long_options, &option_index) == -1))
 		{
-			case 0:
-				printf("option %s", long_options[option_index].name);
-				
-				if (option_index == 0)
-				{
-					execMode = 1;
-				}
+			break;
+		}
 
-				if (option_index == 1)
-				{
-					execMode = 2;
-				}
+		switch (c)
+		{
+		case 0:
+			printf("option %s", long_options[option_index].name);
 
-				if (optarg)
-				{
-					strcpy(filename, optarg);
-					//printf(" with arg %s\n", optarg);
-				}
-				break;
-			default:
-				printf("?? getopt returned character code 0%o ??\n", c);
-        }
-    }
+			if (option_index == 0)
+			{
+				execMode = 1;
+			}
 
-    if (optind < argc) 
-    {
-        printf("non-option arguments: ");
-        while (optind < argc)
-        {
-            printf("%s\n", argv[optind++]);
-        }
-    }
+			if (option_index == 1)
+			{
+				execMode = 2;
+			}
+
+			if (optarg)
+			{
+				strcpy(filename, optarg);
+				printf(" with arg %s\n", optarg);
+			}
+			break;
+		default:
+			printf("?? getopt returned character code 0%o ??\n", c);
+		}
+	}
+
+	if (optind < argc)
+	{
+		printf("non-option arguments: ");
+		while (optind < argc)
+		{
+			printf("%s\n", argv[optind++]);
+		}
+	}
 }
 
 void handle_connection(int sockfd)
 {
 	char buff[MAX];
 	int n;
-	// todo: send a predefined string first if you want to send a file
 
-	//sendFile(sockfd); // delete the comment if you want to send a file
+	bzero(buff, sizeof(buff));
+	strcpy(buff, "FILE_INCOMING");
+	write(sockfd, buff, sizeof(buff));
+	sendFile(sockfd);
 
-	for (;;) {
-		bzero(buff, sizeof(buff));
-		printf("You: ");
-		n = 0;
-		while ((buff[n++] = getchar()) != '\n')
-			;
-		write(sockfd, buff, sizeof(buff));
-		bzero(buff, sizeof(buff));
-		read(sockfd, buff, sizeof(buff));
-		printf("\tServer: %s", buff);
-		if (strncmp("goodbye", buff, 7) == 0){
-			printf("Client Exit...\n");
-			break;
-		}
-	}
+	bzero(buff, sizeof(buff));
+	read(sockfd, buff, sizeof(buff));
+	printf("\tServer: %s", buff);
 }
 
 void sendFile(int sockfd)
 {
+#if MAC
+	unsigned char buffer[1024];
+	size_t bytesRead = 0;
+	char buff[1024] = "FILE_INCOMING";
+
+	FILE *fd1 = fopen("min2_1.mp4", "rb");
+
+	while ((bytesRead = fread(buffer, 1, sizeof(buffer), fd1)) > 0)
+	{
+		send(sockfd, buffer, sizeof(buffer), 0);
+	}
+	close(sockfd);
+
+	fclose(fd1);
+
+#else
 	int fd;
-    struct stat stbuf;
+	struct stat stbuf;
 
-    fd = open("min2_1.mp4", O_RDONLY); // should be get from command line
-    fstat(fd, &stbuf);
+	fd = open("min2_1.mp4", O_RDONLY); // should be get from command line
+	fstat(fd, &stbuf);
 
-	sendfile(sockfd, fd, 0, stbuf.st_size);
-    close(sockfd);
-    close(fd);
+	sendfile(sockfd, fd, 0, stbuf.st_size, 0, 0);
+	close(sockfd);
+	close(fd);
+#endif
 }

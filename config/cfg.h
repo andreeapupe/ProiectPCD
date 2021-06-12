@@ -3,6 +3,8 @@
 #define PORT_WEB_CLIENT 8080
 
 #define MAX_STD_CLIENT_NUMBER 10
+#define FILE_SIZE_CHUNK 1024
+#define MAC 1
 
 #define TRUE 1
 #define FALSE 0
