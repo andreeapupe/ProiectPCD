@@ -16,7 +16,6 @@
 
 // Project specific includes
 #include "config/cfg.h"
-#ifdef MAC
 
 char serverResponse[256];
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
@@ -172,15 +171,11 @@ void *socketThread(void *arg)
     recv(newSocket, &clientMessage, 1024, 0);
     if (strcmp(clientMessage, "FILE_INCOMING") == 0)
     {
-        char *ciuciu = "Mesaj ciuciu";
-        send(newSocket, ciuciu, sizeof(ciuciu), 0);
-        printf("TEST\n\n");
         write_file(newSocket);
     }
     else
     {
         //printf("From client: %s\n\n", clientMessage);
-        printf("matan cur");
     }
 
     pthread_mutex_lock(&lock);
@@ -226,6 +221,6 @@ void write_file(int sockfd)
         fwrite(buffer, n, 1, fp);
         bzero(buffer, FILE_SIZE_CHUNK);
     }
+    fclose(fp);
     return;
 }
-#endif

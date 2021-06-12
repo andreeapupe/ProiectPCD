@@ -123,14 +123,9 @@ void handle_connection(int sockfd)
 	char buff[MAX];
 	int n;
 
-	// todo: send a predefined string first if you want to send a file
-
-	//sendFile(sockfd); // delete the comment if you want to send a file
-
 	bzero(buff, sizeof(buff));
 	strcpy(buff, "FILE_INCOMING");
 	write(sockfd, buff, sizeof(buff));
-	read(sockfd, buff, sizeof(buff));
 	sendFile(sockfd);
 
 	bzero(buff, sizeof(buff));
@@ -140,6 +135,23 @@ void handle_connection(int sockfd)
 
 void sendFile(int sockfd)
 {
+#if MAC
+	unsigned char buffer[1024];
+	size_t bytesRead = 0;
+	char buff[1024] = "FILE_INCOMING";
+
+	FILE *fd1 = fopen("min2_1.mp4", "rb");
+
+	send(sockfd, buff, sizeof(buff), 0);
+	while ((bytesRead = fread(buffer, 1, sizeof(buffer), fd1)) > 0)
+	{
+		send(sockfd, buffer, sizeof(buffer), 0);
+	}
+	close(sockfd);
+
+	fclose(fd1);
+
+#else
 	int fd;
 	struct stat stbuf;
 
@@ -149,4 +161,5 @@ void sendFile(int sockfd)
 	sendfile(sockfd, fd, 0, stbuf.st_size, 0, 0);
 	close(sockfd);
 	close(fd);
+#endif
 }
