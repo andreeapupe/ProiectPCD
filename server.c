@@ -18,10 +18,15 @@
 #include "config/cfg.h"
 
 char serverResponse[256];
+char logs[1024];
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
 void *socketThread(void *arg);
+void *socketThreadAdministrator(void *arg);
+void *adminComponentThread(void *arg);
+void start_admin_component(int port, int *server_sock, int *client_sock);
 void write_file(int sockfd);
+void init_admin_component(pthread_t *threadId, int port);
 int createSocket();
 int isAFile(char *message);
 
@@ -60,21 +65,31 @@ int main(int argv, char *argc[])
 
             if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
             {
-                perror("Bind error\n");
+                perror("Bind error WEB CLIENT on port 8080");
+                
+                fprintf(stdout, "Trying bind socket on port %d\n", PORT_WEB_CLIENT_ALTERNATIVE);
+                server_address.sin_port = htons(PORT_WEB_CLIENT_ALTERNATIVE);
+                if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
+                {
+                    exit(EXIT_FAILURE);    
+                } 
+
+                fprintf(stdout, "Sucessfully binding on port %d\n", PORT_WEB_CLIENT_ALTERNATIVE);
             };
 
             if ((listenValue = listen(server_socket, 5)) == -1)
             {
-                perror("Listen error\n");
+                perror("Listen error WEB CLIENT");
+                exit(EXIT_FAILURE);
             };
 
-            fprintf(stdout, "Waiting for web client...\n");
+            fprintf(stdout, "Waiting for web clients...\n");
 
             while (TRUE)
             {
                 if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)
                 {
-                    perror("Accept failure\n");
+                    perror("Accept failure");
                     exit(EXIT_FAILURE);
                 };
 
@@ -93,6 +108,10 @@ int main(int argv, char *argc[])
         {
             // STANDARD CLIENT PROCESS
             pthread_t tid[60];
+            pthread_t admin_component;
+
+            init_admin_component(&admin_component, PORT_ADM_CLIENT);
+
             int i = 0;
             int server_socket, client_socket;
 
@@ -113,21 +132,23 @@ int main(int argv, char *argc[])
 
             if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
             {
-                perror("Bind error\n");
+                perror("Bind error STD CLIENT");
+                exit(EXIT_FAILURE);
             };
 
             if ((listenValue = listen(server_socket, 5)) == -1)
             {
-                perror("Listen error\n");
+                perror("Listen error STD CLIENT");
+                exit(EXIT_FAILURE);
             };
 
-            fprintf(stdout, "Waiting for connections...\n");
+            fprintf(stdout, "Waiting for standard clients...\n");
 
             while (TRUE)
             {
                 if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)
                 {
-                    perror("Accept failure\n");
+                    perror("Accept failure");
                     exit(EXIT_FAILURE);
                 };
 
@@ -189,6 +210,95 @@ void *socketThread(void *arg)
     pthread_exit(NULL);
 }
 
+void *socketThreadAdministrator(void *arg)
+{
+    int client_socket = *((int *)arg);
+    char clientMessage[1024];
+    char sampleMessage[1024] = "From admin";
+
+    recv(client_socket, &clientMessage, 1024, 0);
+    printf("Admin: %s\n", clientMessage);
+    send(client_socket, sampleMessage, sizeof(sampleMessage), 0);
+    close(client_socket);
+    arg = 0x00000000;
+}
+
+void *adminComponentThread(void *arg)
+{
+    //printf("Admin component started\n");
+    char clientMessage[1024];
+    int port = *((int*)arg);
+    int server_socket, client_socket;
+
+    server_socket = createSocket();
+    bzero(&client_socket, sizeof(client_socket));
+
+    struct sockaddr_in server_address;
+    struct sockaddr_in client_address;
+    struct sockaddr_storage server_storage;
+
+    server_address.sin_family = AF_INET;
+    server_address.sin_port = htons(port);
+    server_address.sin_addr.s_addr = INADDR_ANY;
+
+    int client_address_len = sizeof(client_address);
+
+    int bindValue;
+    int listenValue;
+
+    if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
+    {
+        perror("Bind error");
+        exit(EXIT_FAILURE);
+    };
+
+    if ((listenValue = listen(server_socket, 5)) == -1)
+    {
+        perror("Listen error");
+        exit(EXIT_FAILURE);
+    };
+
+    fprintf(stdout, "Waiting for administrator...\n");
+    
+    while (TRUE)
+    {
+        // Ensure only one administrator is connected
+        if (client_socket == 0x00000000)
+        {
+            if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)  
+            {
+                perror("Accept failure");
+                exit(EXIT_FAILURE);
+            };
+
+            fprintf(stdout, "New connection from %s:%d\n", inet_ntoa(client_address.sin_addr), (int)client_address.sin_port);
+
+            pthread_t t;
+            int *pclient = malloc(sizeof(int));
+            *pclient = client_socket;
+            pthread_create(&t, NULL, socketThreadAdministrator, pclient);
+
+        }
+        else
+        {
+            char* serverResponse = "Only one administrator is allowed!";
+            if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)  
+            {
+                perror("Accept failure");
+                exit(EXIT_FAILURE);
+            };
+
+            fprintf(stdout, "New connection from %s:%d\n", inet_ntoa(client_address.sin_addr), (int)client_address.sin_port);
+
+            recv(client_socket, &clientMessage, 1024, 0);
+            fprintf(stdout, "A new admin component said: %s\n", clientMessage);
+            send(client_socket, serverResponse, sizeof(serverResponse), 0);
+            close(client_socket);
+        }
+    }
+    
+}
+
 int isAFile(char *message)
 {
     // dummy
@@ -223,4 +333,18 @@ void write_file(int sockfd)
     }
     fclose(fp);
     return;
+}
+
+void init_admin_component(pthread_t *threadId, int port)
+{
+    int *pPort = malloc(sizeof(int));
+    *pPort = port;
+
+    if (pthread_create(threadId, NULL, adminComponentThread, pPort) == -1)
+    {
+        perror("Cannot create admin component thread");
+        exit(EXIT_FAILURE);
+    };
+
+    //printf("Administrator component thread successfully initialized...\n");
 }
