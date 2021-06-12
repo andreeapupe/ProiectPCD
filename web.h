@@ -2,8 +2,6 @@
 // Created by mihalic on 07.06.2021.
 //
 
-#ifndef PROIECT_WEB_H
-#define PROIECT_WEB_H
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,7 +76,7 @@ struct returnExample reqToStruct(char req[])
 
     int indexBdy = 0;
 
-    while(start != sizeof (req)) {
+    while(start != sizeof (&req)) {
         check = start;
         if (findMatch(req, "input", start) != -1)
         {
@@ -225,11 +223,11 @@ char *responseCode(char req[], char code[])
 
 
 
-    return *response;
+    return (char*)response;
 }
 
 
 
 
 
-#endif //PROIECT_WEB_H
+
