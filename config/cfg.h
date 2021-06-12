@@ -6,3 +6,5 @@
 
 #define TRUE 1
 #define FALSE 0
+
+#define FILE_SIZE_CHUNK 1024
