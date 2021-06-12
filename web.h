@@ -145,7 +145,8 @@ char *responseCode(char req[], char code[])
     month = gtime->tm_mon + 1;      // get month of year (0 to 11)
     year = gtime->tm_year + 1900;   // get year since 1900
 
-    char response[1024];
+    char *response;
+    response = (char*) malloc(256);
     if(strcmp(code,"200")==0||strcmp(code,"404")==0)
     {
         char *message;
