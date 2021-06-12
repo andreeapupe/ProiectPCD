@@ -19,7 +19,9 @@
 
 char serverResponse[256];
 char logs[1024];
-pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+
+pthread_mutex_t lock     = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock_logs = PTHREAD_MUTEX_INITIALIZER;
 
 void *socketThread(void *arg);
 void *socketThreadAdministrator(void *arg);
@@ -94,7 +96,7 @@ int main(int argv, char *argc[])
                 };
 
                 fprintf(stdout, "New connection from %s:%d\n", inet_ntoa(client_address.sin_addr), (int)client_address.sin_port);
-
+                
                 pthread_t t;
                 int *pclient = malloc(sizeof(int));
                 *pclient = client_socket;
@@ -111,6 +113,7 @@ int main(int argv, char *argc[])
             pthread_t admin_component;
 
             init_admin_component(&admin_component, PORT_ADM_CLIENT);
+            bzero(&logs, sizeof(logs));
 
             int i = 0;
             int server_socket, client_socket;
@@ -153,6 +156,11 @@ int main(int argv, char *argc[])
                 };
 
                 fprintf(stdout, "New connection from %s:%d\n", inet_ntoa(client_address.sin_addr), (int)client_address.sin_port);
+                
+                pthread_mutex_lock(&lock_logs);
+                strcat(logs, "New connection from ");
+                strcat(logs, inet_ntoa(client_address.sin_addr));
+                pthread_mutex_unlock(&lock_logs);
 
                 pthread_t t;
                 int *pclient = malloc(sizeof(int));
@@ -218,7 +226,9 @@ void *socketThreadAdministrator(void *arg)
 
     recv(client_socket, &clientMessage, 1024, 0);
     printf("Admin: %s\n", clientMessage);
-    send(client_socket, sampleMessage, sizeof(sampleMessage), 0);
+
+    send(client_socket, logs, sizeof(logs), 0);
+
     close(client_socket);
     arg = 0x00000000;
 }
@@ -277,7 +287,6 @@ void *adminComponentThread(void *arg)
             int *pclient = malloc(sizeof(int));
             *pclient = client_socket;
             pthread_create(&t, NULL, socketThreadAdministrator, pclient);
-
         }
         else
         {
@@ -288,10 +297,10 @@ void *adminComponentThread(void *arg)
                 exit(EXIT_FAILURE);
             };
 
-            fprintf(stdout, "New connection from %s:%d\n", inet_ntoa(client_address.sin_addr), (int)client_address.sin_port);
+            fprintf(stdout, "Refused connection connection from %s:%d\n", inet_ntoa(client_address.sin_addr), (int)client_address.sin_port);
 
             recv(client_socket, &clientMessage, 1024, 0);
-            fprintf(stdout, "A new admin component said: %s\n", clientMessage);
+            //fprintf(stdout, "A new admin component said: %s\n", clientMessage);
             send(client_socket, serverResponse, sizeof(serverResponse), 0);
             close(client_socket);
         }

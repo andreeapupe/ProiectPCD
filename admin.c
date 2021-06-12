@@ -50,8 +50,7 @@ int main(int argv, char* argc[])
     bzero(buff, sizeof(buff));
 
     read(server_socket, buff, sizeof(buff));
-	printf("Server: %s\n", buff);
-    
+    printf("Server: %s\n", buff);
     close(server_socket);
 
     exit(EXIT_SUCCESS);
