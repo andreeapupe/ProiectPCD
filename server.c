@@ -16,7 +16,7 @@
 
 // Project specific includes
 #include "config/cfg.h"
-
+#include "web.h"
 char serverResponse[256];
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
@@ -177,10 +177,19 @@ void* socketThread(void* arg)
     }
 
     pthread_mutex_lock(&lock);
-    strcpy(serverResponse, "HTTP/1.1 200 OK\r\n\r\n");
+
+    // post/get request from web
+    if(checkHttpReqType(clientMessage)==1 ||(checkHttpReqType(clientMessage)==2))
+        strcpy(serverResponse,responseCode(clientMessage,"403"));
+    else
+    {
+        //msg request from standard client
+        strcpy(serverResponse,clientMessage);
+    }
     //sleep(5);
     pthread_mutex_unlock(&lock);
-    
+
+    printf("%s",serverResponse);
     send(newSocket, serverResponse, sizeof(serverResponse), 0);
     printf("[-]Exit socket thread \n");
     close(newSocket);
