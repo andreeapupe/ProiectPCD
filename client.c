@@ -34,12 +34,12 @@ int main(int argc, char *argv[])
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 	if (sockfd == -1)
 	{
-		printf("Socket creation failed...\n");
+		printf("[-] Socket creation failed...\n");
 		exit(0);
 	}
 	else
 	{
-		printf("Socket successfully created...\n");
+		printf("[+] Socket successfully created...\n");
 	}
 
 	bzero(&servaddr, sizeof(servaddr));
@@ -52,12 +52,12 @@ int main(int argc, char *argv[])
 	// connect the client socket to server socket
 	if (connect(sockfd, (SA *)&servaddr, sizeof(servaddr)) != 0)
 	{
-		printf("Client cannot connect to server...\n");
+		printf("[-] Client cannot connect to server...\n");
 		exit(0);
 	}
 	else
 	{
-		printf("Successfully connected to the server..\n\n");
+		printf("[+] Successfully connected to the server..\n\n");
 	}
 
 	handle_connection(sockfd);
@@ -104,13 +104,13 @@ void validate_args(int argc, char *argv[], int execMode, char *filename)
 			}
 			break;
 		default:
-			printf("?? getopt returned character code 0%o ??\n", c);
+			printf("[-] getopt returned character code 0%o ??\n", c);
 		}
 	}
 
 	if (optind < argc)
 	{
-		printf("non-option arguments: ");
+		printf("[-] non-option arguments: ");
 		while (optind < argc)
 		{
 			printf("%s\n", argv[optind++]);
