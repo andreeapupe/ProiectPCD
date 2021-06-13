@@ -16,13 +16,13 @@ int main(int argv, char* argc[])
 
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
-        perror("Cannot create socket");
+        perror("[-] Cannot create socket");
         exit(EXIT_FAILURE);
     };
 
     if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1)
     {
-        perror("Cannot assign SO_REUSEADDR");
+        perror("[-] Cannot assign SO_REUSEADDR");
         exit(EXIT_FAILURE);
     };
 
@@ -36,11 +36,11 @@ int main(int argv, char* argc[])
 
     if (connect(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) != 0)
 	{
-		printf("Client cannot connect to server...\n");
+		printf("[-] Client cannot connect to server...\n");
 		exit(0);
 	}
     
-    fprintf(stdout, "Connected to server\n");
+    fprintf(stdout, "[+] Connected to server\n");
     char buff[1024];
 
 	bzero(buff, sizeof(buff));
@@ -49,8 +49,12 @@ int main(int argv, char* argc[])
 
     bzero(buff, sizeof(buff));
 
-    read(server_socket, buff, sizeof(buff));
-    printf("Server: %s\n", buff);
+    while(1)
+    {
+     read(server_socket, buff, sizeof(buff));
+    printf("Server: %s\n", buff);   
+    }
+    
     close(server_socket);
 
     exit(EXIT_SUCCESS);
