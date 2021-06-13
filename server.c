@@ -20,7 +20,8 @@
 char serverResponse[256];
 pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 
-void* socketThread(void* arg);
+void* socketThreadStandard(void* arg);
+void* socketThreadWeb(void* arg);
 void write_file(int sockfd);
 int createSocket();
 int isAFile(char* message);
@@ -83,7 +84,7 @@ int main(int argv, char* argc[])
                 pthread_t t;
                 int* pclient = malloc(sizeof(int));
                 *pclient = client_socket;
-                pthread_create(&t, NULL, socketThread, pclient);
+                pthread_create(&t, NULL, socketThreadWeb, pclient);
             }
 
             wait(NULL);
@@ -136,7 +137,7 @@ int main(int argv, char* argc[])
                 pthread_t t;
                 int* pclient = malloc(sizeof(int));
                 *pclient = client_socket;
-                pthread_create(&t, NULL, socketThread, pclient);
+                pthread_create(&t, NULL, socketThreadStandard, pclient);
             }
 
             wait(NULL);
@@ -163,7 +164,7 @@ int createSocket()
     return server_socket;
 }
 
-void* socketThread(void* arg)
+void* socketThreadStandard(void* arg)
 {
     int newSocket = *((int *)arg);
     char clientMessage[1024];
@@ -180,7 +181,12 @@ void* socketThread(void* arg)
 
     // post/get request from web
     if(checkHttpReqType(clientMessage)==1 ||(checkHttpReqType(clientMessage)==2))
+    {
         strcpy(serverResponse,responseCode(clientMessage,"403"));
+        printf("if %s",serverResponse);
+        close(newSocket);
+        pthread_exit(NULL);
+    }
     else
     {
         //msg request from standard client
@@ -196,6 +202,33 @@ void* socketThread(void* arg)
     pthread_exit(NULL);
 }
 
+void* socketThreadWeb(void* arg)
+{
+    int newSocket = *((int *)arg);
+    char clientMessage[1024];
+
+    recv(newSocket, &clientMessage, 1024, 0);
+    printf("From client: %s\n\n", clientMessage);
+
+    if (isAFile(clientMessage) == 1)
+    {
+        write_file(newSocket);
+    }
+
+    pthread_mutex_lock(&lock);
+
+    // post/get request from web
+    if(checkHttpReqType(clientMessage)==1 ||(checkHttpReqType(clientMessage)==2))
+        strcpy(serverResponse,responseCode(clientMessage,"200"));
+    //sleep(5);
+    pthread_mutex_unlock(&lock);
+
+   // printf("%s",serverResponse);
+    send(newSocket, serverResponse, sizeof(serverResponse), 0);
+    printf("[-]Exit socket thread \n");
+    close(newSocket);
+    pthread_exit(NULL);
+}
 int isAFile(char* message)
 {
     // dummy

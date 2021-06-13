@@ -10,5 +10,5 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
 
 message("C compiler flags: ${CMAKE_C_FLAGS}")
 
-add_executable(server server.c)
+add_executable(server server.c web.h)
 add_executable(client client.c)
