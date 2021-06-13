@@ -1,15 +1,9 @@
-//
-// Created by mihalic on 07.06.2021.
-//
-
-#ifndef PROIECT_WEB_H
-#define PROIECT_WEB_H
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
 #include <time.h>
+
 struct reqBody {
     char key[64];
     char value[64];
@@ -78,7 +72,7 @@ struct returnExample reqToStruct(char req[])
 
     int indexBdy = 0;
 
-    while(start != sizeof (req)) {
+    while(start != sizeof (&req)) {
         check = start;
         if (findMatch(req, "input", start) != -1)
         {
@@ -120,7 +114,7 @@ const char *wd(int year, int month, int day) {
 void concat(char* msg,int nr)
 {
     int length = snprintf( NULL, 0, "%d", nr);
-    char *str = malloc( length + 1 );
+    char *str = (char*)malloc( length + 1 );
     snprintf( str, length + 1, "%d", nr);
     strcat(msg,str);
     free(str);
@@ -145,7 +139,8 @@ char *responseCode(char req[], char code[])
     month = gtime->tm_mon + 1;      // get month of year (0 to 11)
     year = gtime->tm_year + 1900;   // get year since 1900
 
-    char response[1024];
+    char *response;
+    response = (char*) malloc(2048);
     if(strcmp(code,"200")==0||strcmp(code,"404")==0)
     {
         char *message;
@@ -154,6 +149,7 @@ char *responseCode(char req[], char code[])
         if(strcmp(code,"404")==0)
             message = "HTTP/1.1 404 Not Found\n";
         strcpy(response,message);
+        strcat(response, "content-type: text/html\n");
         strcat(response, "Date: ");
         strncat(response, wd(year,month, day),3);
         strcat(response,", ");
@@ -184,17 +180,18 @@ char *responseCode(char req[], char code[])
         firstIndex = findMatch(req,"Connection:",0);
         secondIndex = findMatch(req,"Upgrade",0);
         strncat(response,&req[firstIndex],secondIndex-firstIndex);
-
-
-
-
+        strcat(response, "\r\n\r\n");
     }
     if(strcmp(code,"403")==0)
     {
         char *message;
-        message = "HTTP/1.1 403 Forbiden\n";
-
+        message = "HTTP/1.1 403 Forbidden\n";
+        
         strcpy(response,message);
+
+        strcat(response, "Server: AlphaCar\n");
+        strcat(response, "Connection: keep-alive\n");
+
         strcat(response, "Date: ");
         strncat(response, wd(year,month, day),3);
         strcat(response,", ");
@@ -213,22 +210,9 @@ char *responseCode(char req[], char code[])
         strcat(response, ":");
         concat(response, seconds);
         strcat(response," GMT\n");
-
+        strcat(response, "\r\n\r\n");
     }
-
-
-
-
-
     printf("%s", response);
 
-
-
-    return *response;
+    return (char*)response;
 }
-
-
-
-
-
-#endif //PROIECT_WEB_H
