@@ -16,6 +16,7 @@
 
 // Project specific includes
 #include "config/cfg.h"
+#include "web.h"
 
 char serverResponse[256];
 char logs[1024];
@@ -23,8 +24,9 @@ char logs[1024];
 pthread_mutex_t lock      = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t lock_logs = PTHREAD_MUTEX_INITIALIZER;
 
-void *socketThread(void *arg);
+void *socketThreadStandard(void *arg);
 void *socketThreadAdministrator(void *arg);
+void* socketThreadWeb(void* arg);
 void *adminComponentThread(void *arg);
 void start_admin_component(int port, int *server_sock, int *client_sock);
 void write_file(int sockfd);
@@ -112,7 +114,7 @@ int main(int argv, char *argc[])
                 pthread_t t;
                 int *pclient = malloc(sizeof(int));
                 *pclient = client_socket;
-                pthread_create(&t, NULL, socketThread, pclient);
+                pthread_create(&t, NULL, socketThreadWeb, pclient);
             }
 
             wait(NULL);
@@ -182,7 +184,7 @@ int main(int argv, char *argc[])
                 pthread_t t;
                 int *pclient = malloc(sizeof(int));
                 *pclient = client_socket;
-                pthread_create(&t, NULL, socketThread, pclient);
+                pthread_create(&t, NULL, socketThreadStandard, pclient);
             }
 
             wait(NULL);
@@ -209,30 +211,41 @@ int createSocket()
     return server_socket;
 }
 
-void *socketThread(void *arg)
+void *socketThreadStandard(void *arg)
 {
     int newSocket = *((int *)arg);
     char clientMessage[1024];
 
     recv(newSocket, &clientMessage, 1024, 0);
-    if (strcmp(clientMessage, "FILE_INCOMING") == 0)
+
+    // post/get request from web
+    if(checkHttpReqType(clientMessage)==1 ||(checkHttpReqType(clientMessage)==2))
     {
-        write_file(newSocket);
+        char response[2048];
+        strcpy(response, responseCode(clientMessage,"403"));
+        send(newSocket, response, sizeof(response), 0);
+        //close(newSocket);
+        //pthread_exit(NULL);
     }
     else
     {
-        //printf("From client: %s\n\n", clientMessage);
+        //msg request from standard client
+        strcpy(serverResponse,clientMessage);
+        if (strcmp(clientMessage, "FILE_INCOMING") == 0)
+        {
+            write_file(newSocket);
+        }
+        else
+        {
+            //printf("From client: %s\n\n", clientMessage);
+        }
+
+        fprintf(stdout, "%s",serverResponse);
+        send(newSocket, serverResponse, sizeof(serverResponse), 0);
+        printf("[-]Exit socket thread\n");
+        close(newSocket);
+        pthread_exit(NULL);
     }
-
-    pthread_mutex_lock(&lock);
-    strcpy(serverResponse, "HTTP/1.1 200 OK\r\n\r\n");
-    //sleep(5);
-    pthread_mutex_unlock(&lock);
-
-    send(newSocket, serverResponse, sizeof(serverResponse), 0);
-    printf("[-]Exit socket thread \n");
-    close(newSocket);
-    pthread_exit(NULL);
 }
 
 void *socketThreadAdministrator(void *arg)
@@ -262,6 +275,29 @@ void *socketThreadAdministrator(void *arg)
 
     close(client_socket);
     arg = 0x00000000;
+}
+
+void* socketThreadWeb(void* arg)
+{
+    int newSocket = *((int *)arg);
+    char clientMessage[1024];
+
+    recv(newSocket, &clientMessage, 1024, 0);
+    printf("From client: %s\n\n", clientMessage);
+
+    pthread_mutex_lock(&lock);
+
+    // post/get request from web
+    if(checkHttpReqType(clientMessage)==1 ||(checkHttpReqType(clientMessage)==2))
+        strcpy(serverResponse,responseCode(clientMessage,"200"));
+    //sleep(5);
+    pthread_mutex_unlock(&lock);
+
+   // printf("%s",serverResponse);
+    send(newSocket, serverResponse, sizeof(serverResponse), 0);
+    printf("[-]Exit socket thread \n");
+    close(newSocket);
+    pthread_exit(NULL);
 }
 
 void *adminComponentThread(void *arg)
