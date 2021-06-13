@@ -1,0 +1,30 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/mihalic/Desktop/pcd/proiect/ProiectPCD/client.c
+netdb.h
+-
+stdio.h
+-
+stdlib.h
+-
+string.h
+-
+sys/socket.h
+-
+getopt.h
+-
+sys/stat.h
+-
+fcntl.h
+-
+config/cfg.h
+/home/mihalic/Desktop/pcd/proiect/ProiectPCD/config/cfg.h
+
+/home/mihalic/Desktop/pcd/proiect/ProiectPCD/config/cfg.h
+

@@ -1,0 +1,4 @@
+/home/mihalic/Desktop/pcd/proiect/ProiectPCD/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/mihalic/Desktop/pcd/proiect/ProiectPCD/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/mihalic/Desktop/pcd/proiect/ProiectPCD/cmake-build-debug/CMakeFiles/client.dir
+/home/mihalic/Desktop/pcd/proiect/ProiectPCD/cmake-build-debug/CMakeFiles/server.dir
