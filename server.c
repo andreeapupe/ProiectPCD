@@ -266,14 +266,14 @@ void *socketThreadStandard(void *arg)
 
     if (strcmp(clientMessage, "FILE_INCOMING") == 0)
     {
-        fprintf(stdout, "%s\n", clientMessage);
+        fprintf(stdout, "File: %s\n", clientMessage);
         write_file(newSocket);
     }
     else
     {
         if(strstr(clientMessage, "INFO_INCOMING") != NULL)
         {
-           strcpy(source, "clientMessage");
+           strcpy(source, clientMessage);
         }
     }
 
@@ -521,7 +521,7 @@ void write_file(int sockfd)
     fprintf(stdout, "Received %lld bytes\n", countBytes);
     fclose(fp);
 
-    system("python3 ../python/DetectCars.py ../build/min2_1.mp4");
+    system("python3 ../python/DetectCars.py ../build/video_0.mp4");
 
     return;
 }

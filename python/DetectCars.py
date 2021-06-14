@@ -139,7 +139,7 @@ def process_video(video_input):
     # Create an object of lane Detector class
     detector = LaneDetectionClass()
 
-    cap = cv2.VideoCapture(inpt)
+    cap = cv2.VideoCapture(video_input)
 
     # Frame dimensions
     frame_width = int(cap.get(3))
@@ -209,6 +209,6 @@ if __name__ == '__main__':
     frames_count = process_video(sys.argv[1])
     end = time.time()
     client.run(final_data)
-    print(final_data)
+    # print(final_data)
 
-    print("Total : " + str((end - start)) + "s for " + str(frames_count) + "frames")
+    # print("Total : " + str((end - start)) + "s for " + str(frames_count) + "frames")
