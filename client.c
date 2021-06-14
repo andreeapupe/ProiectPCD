@@ -157,7 +157,7 @@ void sendFile(int sockfd)
 	fd = open("min2_1.mp4", O_RDONLY); // should be get from command line
 	fstat(fd, &stbuf);
 
-	sendfile(sockfd, fd, 0, stbuf.st_size, 0, 0);
+	sendfile(sockfd, fd, 0, stbuf.st_size);
 	close(sockfd);
 	close(fd);
 #endif

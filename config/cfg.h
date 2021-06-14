@@ -9,3 +9,5 @@
 
 #define TRUE 1
 #define FALSE 0
+
+static char defaultHttpResponse[2048] = "HTTP/1.1 200 OK\ncontent-type: text/html";
