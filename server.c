@@ -523,3 +523,9 @@ void init_admin_component(pthread_t *threadId, char* shmValue)
 
     //printf("Administrator component thread successfully initialized...\n");
 }
+
+void concatErrorLogs(const char* message)
+{
+    strcat(errorLogs, message);
+    strcat(errorLogs, "\n");
+}

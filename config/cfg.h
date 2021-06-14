@@ -24,7 +24,8 @@ static const char xmlSendList[10][45]={
     "./client -send /simulation/car8.xml",
     "./client -send /simulation/car9.xml",
     "./client -send /simulation/car10.xml"
-}
+};
+
 static const char xmlGetList[10][45]={
     "./client -get /simulation/car1.xml",
     "./client -get /simulation/car2.xml",
@@ -36,7 +37,7 @@ static const char xmlGetList[10][45]={
     "./client -get /simulation/car8.xml",
     "./client -get /simulation/car9.xml",
     "./client -get /simulation/car10.xml"
-}
+};
 
 static const char FORK_ERROR_MESSAGE[256] = "[-] Cannot fork";
 static const char LISTEN_WEB_ERROR_MESSAGE[256] = "[-] Listen error WEB CLIENT";
