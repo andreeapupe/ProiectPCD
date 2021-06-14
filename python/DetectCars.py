@@ -1,9 +1,13 @@
 import time
 import cv2
 import numpy as np
+import sys
+import client
 
-f = open("ProcessingTime.txt", "w")
-f.close()
+'''f = open("ProcessingTime.txt", "w")
+f.close()'''
+final_data = "INFO_INCOMING\n"
+data_cardetect = 0
 
 
 class LaneDetectionClass:
@@ -172,11 +176,16 @@ def process_video(video_input):
                 out.write(detector.rgb2bgr(output_image))
 
                 # Print the time taken to process frames with 1s delay and save it to txt file
-                f = open("ProcessingTime.txt", "a")
+                '''f = open("ProcessingTime.txt", "a")
 
                 print(end - start)
                 f.write(repr(end-start) + '\n')
-                f.close()
+                f.close()'''
+                data_cardetect = end-start
+                print(data_cardetect)
+                global final_data
+                final_data += str(data_cardetect)
+                final_data += "\n"
 
 
 
@@ -197,7 +206,9 @@ def process_video(video_input):
 if __name__ == '__main__':
     start = time.time()
 
-    frames_count = process_video('min2_5')
+    frames_count = process_video(sys.argv[1])
     end = time.time()
+    client.run(final_data)
+    print(final_data)
 
     print("Total : " + str((end - start)) + "s for " + str(frames_count) + "frames")
