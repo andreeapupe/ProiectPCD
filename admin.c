@@ -17,14 +17,14 @@ int main(int argv, char* argc[])
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
         perror(CREATE_SOCKET_ERROR_MESSAGE);
-	concatErrorLogs(CREATE_SOCKET_ERROR_MESSAGE);
+	    //concatErrorLogs(CREATE_SOCKET_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     };
 
     if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1)
     {
         perror(ASSIGN_SO_REUSEADDR_ERROR_MESSAGE);
-	concatErrorLogs(ASSIGN_SO_REUSEADDR_ERROR_MESSAGE);
+	    //concatErrorLogs(ASSIGN_SO_REUSEADDR_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     };
 
@@ -53,8 +53,8 @@ int main(int argv, char* argc[])
 
     while(1)
     {
-     read(server_socket, buff, sizeof(buff));
-    printf("Server: %s\n", buff);   
+        read(server_socket, buff, sizeof(buff));
+        printf("Server: %s\n", buff);   
     }
     
     close(server_socket);

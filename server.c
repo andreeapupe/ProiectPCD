@@ -76,7 +76,7 @@ int main(int argv, char *argc[])
             if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
             {
                 perror(BIND_WEB_ERROR_MESSAGE);
-		concatErrorLOgs(BIND_WEB_ERROR_MESSAGE);
+		        concatErrorLogs(BIND_WEB_ERROR_MESSAGE);
                 
                 fprintf(stdout, "[+] Trying bind socket on port %d\n", PORT_WEB_CLIENT_ALTERNATIVE);
                 server_address.sin_port = htons(PORT_WEB_CLIENT_ALTERNATIVE);
@@ -211,14 +211,14 @@ int createSocket()
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
         perror(CREATE_SOCKET_ERROR_MESSAGE);
-	concatErrorLogs(CREATE_SOCKET_ERRROR_MESSAGE);
+	    concatErrorLogs(CREATE_SOCKET_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     };
 
     if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1)
     {
         perror(ASSIGN_SO_REUSEADDR_ERROR_MESSAGE);
-	concatErrorLogs(ASIGN_SO_REUSEADDR_ERROR_MESSAGE);
+	    concatErrorLogs(ASSIGN_SO_REUSEADDR_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     };
 
