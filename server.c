@@ -75,7 +75,8 @@ int main(int argv, char *argc[])
 
             if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
             {
-                perror("[-] Bind error WEB CLIENT on port 8080");
+                perror(BIND_WEB_ERROR_MESSAGE);
+		concatErrorLOgs(BIND_WEB_ERROR_MESSAGE);
                 
                 fprintf(stdout, "[+] Trying bind socket on port %d\n", PORT_WEB_CLIENT_ALTERNATIVE);
                 server_address.sin_port = htons(PORT_WEB_CLIENT_ALTERNATIVE);
@@ -157,13 +158,15 @@ int main(int argv, char *argc[])
 
             if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
             {
-                perror("[-] Bind error STD CLIENT");
+                perror(BIND_STD_ERROR_MESSAGE);
+		concatErrorLogs(BIND_STD_ERROR_MESSAGE);
                 exit(EXIT_FAILURE);
             };
 
             if ((listenValue = listen(server_socket, 5)) == -1)
             {
-                perror("[-] Listen error STD CLIENT");
+                perror(LISTEN_STD_ERROR_MESSAGE);
+		concatErrorLogs(LISTEN_STD_ERROR_MESSAGE);
                 exit(EXIT_FAILURE);
             };
 
@@ -173,7 +176,8 @@ int main(int argv, char *argc[])
             {
                 if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)
                 {
-                    perror("[-] Accept failure");
+                    perror(ACCEPT_ERROR_MESSAGE);
+		    concatErrorLogs(ACCEPT_ERROR_MESSAGE);
                     exit(EXIT_FAILURE);
                 };
 
@@ -206,13 +210,15 @@ int createSocket()
     int server_socket;
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
-        perror("[-] Cannot create socket");
+        perror(CREATE_SOCKET_ERROR_MESSAGE);
+	concatErrorLogs(CREATE_SOCKET_ERRROR_MESSAGE);
         exit(EXIT_FAILURE);
     };
 
     if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1)
     {
-        perror("[-] Cannot assign SO_REUSEADDR");
+        perror(ASSIGN_SO_REUSEADDR_ERROR_MESSAGE);
+	concatErrorLogs(ASIGN_SO_REUSEADDR_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     };
 
@@ -349,13 +355,14 @@ void *adminComponentThread(void *arg)
 
     if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
     {
-        perror("[-] Bind error");
+        perror(BIND_ADMIN_ERROR_MESSAGE);
+	concatErrorLogs(BIND_ADMIN_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     };
 
     if ((listenValue = listen(server_socket, 5)) == -1)
     {
-        perror("[-] Listen error");
+        perror(LISTEN_ADMIN_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     };
 
@@ -368,7 +375,8 @@ void *adminComponentThread(void *arg)
         {
             if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)  
             {
-                perror("[-] Accept failure");
+                perror(ACCEPT_ERROR_MESSAGE);
+		concatErrorLogs(ACCEPT_ERROR_MESSAGE);
                 exit(EXIT_FAILURE);
             };
 
@@ -384,7 +392,8 @@ void *adminComponentThread(void *arg)
             char* serverResponse = "[-] Only one administrator is allowed!";
             if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)  
             {
-                perror("[-] Accept failure");
+                perror(ACCEPT_ERROR_MESSAGE);
+		concatErrorLogs(ACCEPT_ERROR_MESSAGE);
                 exit(EXIT_FAILURE);
             };
 
@@ -415,7 +424,8 @@ void write_file(int sockfd)
     fp = fopen(filename, "wb");
     if (fp == NULL)
     {
-        perror("[-] error at file creation");
+        perror(FILE_CREATION_ERROR_MESSAGE);
+	concatErrorLogs(FILE_CREATION_ERROR_MESSAGE);
         return;
     }
     
@@ -442,7 +452,8 @@ void init_admin_component(pthread_t *threadId, int port)
 
     if (pthread_create(threadId, NULL, adminComponentThread, pPort) == -1)
     {
-        perror("[-] Cannot create admin component thread");
+        perror(ADMIN_THREAD_ERROR_MESSAGE);
+	concatErrorLogs(ADMIN_THREAD_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     };
 
