@@ -482,6 +482,7 @@ int isAFile(char *message)
 
 void write_file(int sockfd)
 {
+    long long int countBytes = 0;
     int n;
     FILE *fp;
     char filename[64];
@@ -508,7 +509,7 @@ void write_file(int sockfd)
     while (1)
     {
         n = recv(sockfd, buffer, FILE_SIZE_CHUNK, 0);
-        printf("Received: %d bytes\n", n);
+        countBytes += n;
         if (n <= 0)
         {
             break;
@@ -517,7 +518,11 @@ void write_file(int sockfd)
         fwrite(buffer, n, 1, fp);
         bzero(buffer, FILE_SIZE_CHUNK);
     }
+    fprintf(stdout, "Received %lld bytes\n", countBytes);
     fclose(fp);
+
+    system("python3 ../python/DetectCars.py ../build/min2_1.mp4");
+
     return;
 }
 
