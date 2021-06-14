@@ -12,15 +12,27 @@
 
 static char defaultHttpResponse[2048] = "HTTP/1.1 200 OK\ncontent-type: text/html";
 
-static const char FORK_ERROR_MESSAGE[256] = "[-] Cannot fork";
-static const char LISTEN_WEB_ERROR_MESSAGE[256] = "[-] Listen error WEB CLIENT";
-static const char LISTEN_STD_ERROR_MESSAGE[256] = "[-] Listen error STD CLIENT";
-static const char ACCEPT_ERROR_MESSAGE[256] = "[-] Accept failure";
-static const char BIND_STD_ERROR_MESSAGE[256] = "[-] Bind error STD CLIENT";
-static const char BIND_WEB_ERROR_MESSAGE[256] = "[-] BInd error WEB CLIENT on port 8080";
-static const char CREATE_SOCKET_ERROR_MESSAGE[256] = "[-] Cannot create socket";
-static const char ASSIGN_SO_REUSEADDR_ERROR_MESSAGE[256] = "[-] Cannot assign SO_REUSEADDR";
-static const char LISTEN_ADMIN_ERROR_MESSAGE[256] = "Listen error ADMIN";
-static const char BIND_ADMIN_ERROR_MESSAGE[256] = "Bind error ADMIN";
-static const char FILE_CREATION_ERROR_MESSAGE[256] = "Error at file creation";
-static const char ADMIN_THREAD_ERROR_MESSAGE[256] = "Cannot create admin component thread"; 
+static const char xmlSendList[10][45]={
+    "./client -send /simulation/car1.xml",
+    "./client -send /simulation/car2.xml",
+    "./client -send /simulation/car3.xml",
+    "./client -send /simulation/car4.xml",
+    "./client -send /simulation/car5.xml",
+    "./client -send /simulation/car6.xml",
+    "./client -send /simulation/car7.xml",
+    "./client -send /simulation/car8.xml",
+    "./client -send /simulation/car9.xml",
+    "./client -send /simulation/car10.xml"
+}
+static const char xmlGetList[10][45]={
+    "./client -get /simulation/car1.xml",
+    "./client -get /simulation/car2.xml",
+    "./client -get /simulation/car3.xml",
+    "./client -get /simulation/car4.xml",
+    "./client -get /simulation/car5.xml",
+    "./client -get /simulation/car6.xml",
+    "./client -get /simulation/car7.xml",
+    "./client -get /simulation/car8.xml",
+    "./client -get /simulation/car9.xml",
+    "./client -get /simulation/car10.xml"
+}
