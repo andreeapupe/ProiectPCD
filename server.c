@@ -218,7 +218,17 @@ void *socketThreadStandard(void *arg)
 
     recv(newSocket, &clientMessage, 1024, 0);
 
-    // post/get request from web
+    if (strcmp(clientMessage, "FILE_INCOMING") == 0)
+    {
+        fprintf(stdout, "%s\n", clientMessage);
+        write_file(newSocket);
+    }
+    else
+    {
+        //printf("From client: %s\n\n", clientMessage);
+    }
+
+    // // post/get request from web
     if(checkHttpReqType(clientMessage)==1 ||(checkHttpReqType(clientMessage)==2))
     {
         char response[2048];
@@ -231,21 +241,13 @@ void *socketThreadStandard(void *arg)
     {
         //msg request from standard client
         strcpy(serverResponse,clientMessage);
-        if (strcmp(clientMessage, "FILE_INCOMING") == 0)
-        {
-            write_file(newSocket);
-        }
-        else
-        {
-            //printf("From client: %s\n\n", clientMessage);
-        }
-
-        fprintf(stdout, "%s",serverResponse);
-        send(newSocket, serverResponse, sizeof(serverResponse), 0);
-        printf("[-]Exit socket thread\n");
-        close(newSocket);
-        pthread_exit(NULL);
     }
+
+    //fprintf(stdout, "%s",serverResponse);
+    send(newSocket, serverResponse, sizeof(serverResponse), 0);
+    printf("[-]Exit socket thread\n");
+    close(newSocket);
+    pthread_exit(NULL);
 }
 
 void *socketThreadAdministrator(void *arg)
@@ -289,12 +291,18 @@ void* socketThreadWeb(void* arg)
 
     // post/get request from web
     if(checkHttpReqType(clientMessage)==1 ||(checkHttpReqType(clientMessage)==2))
-        strcpy(serverResponse,responseCode(clientMessage,"200"));
+    {
+        strcpy(serverResponse,responseCode(defaultHttpResponse,"200"));
+
+        struct returnExample value = reqToStruct(clientMessage);
+
+    }
     //sleep(5);
     pthread_mutex_unlock(&lock);
 
    // printf("%s",serverResponse);
     send(newSocket, serverResponse, sizeof(serverResponse), 0);
+    //bzero(&serverResponse, sizeof(serverResponse));
     printf("[-]Exit socket thread \n");
     close(newSocket);
     pthread_exit(NULL);
@@ -394,7 +402,7 @@ void write_file(int sockfd)
         perror("[-] error at file creation");
         return;
     }
-
+    
     while (1)
     {
         n = recv(sockfd, buffer, FILE_SIZE_CHUNK, 0);
