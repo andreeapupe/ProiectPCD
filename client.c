@@ -130,7 +130,7 @@ void handle_connection(int sockfd)
 
 	bzero(buff, sizeof(buff));
 	read(sockfd, buff, sizeof(buff));
-	printf("\tServer: %s", buff);
+	printf("Server: %s", buff);
 }
 
 void sendFile(int sockfd)
