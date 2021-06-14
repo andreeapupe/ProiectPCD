@@ -3,8 +3,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <time.h>
-
-struct reqBody {
+;
+struct reqBody{
     char key[64];
     char value[64];
 };
@@ -90,10 +90,7 @@ struct returnExample reqToStruct(char req[])
         if(check != start)
             indexBdy++;
     }
-    printf("method: %s\n",structura.method);
-    for(int i =0;i<indexBdy;i++)
-        printf("%d: %s, %s \n",i,structura.bdy[i].key,structura.bdy[i].value);
-
+   
     return structura;
 }
 const char *wd(int year, int month, int day) {
@@ -212,7 +209,7 @@ char *responseCode(char req[], char code[])
         strcat(response," GMT\n");
         strcat(response, "\r\n\r\n");
     }
-    printf("%s", response);
+   // printf("%s", response);
 
     return (char*)response;
 }

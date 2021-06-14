@@ -13,7 +13,7 @@
 // MAX = Maximum number of octets
 #define MAX 1024
 #define SA struct sockaddr
-
+;
 void validate_args(int argc, char *argv[], int execMode, char *filename);
 void handle_connection(int sockfd);
 void sendFile();
