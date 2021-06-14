@@ -20,17 +20,20 @@
 
 char serverResponse[256];
 char logs[1024];
+char errorLogs[2048];
 
-pthread_mutex_t lock      = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t lock_logs = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock            = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock_logs       = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock_error_logs = PTHREAD_MUTEX_INITIALIZER;
 
 void *socketThreadStandard(void *arg);
 void *socketThreadAdministrator(void *arg);
-void* socketThreadWeb(void* arg);
+void *socketThreadWeb(void* arg);
 void *adminComponentThread(void *arg);
 void start_admin_component(int port, int *server_sock, int *client_sock);
 void write_file(int sockfd);
 void init_admin_component(pthread_t *threadId, int port);
+void concatErrorLogs(const char* message);
 int createSocket();
 int isAFile(char *message);
 
@@ -42,12 +45,15 @@ int main(int argv, char *argc[])
 
     if (childId == -1)
     {
-        perror("[-] Cannot fork\n");
+        perror(FORK_ERROR_MESSAGE);
+        concatErrorLogs(FORK_ERROR_MESSAGE);
+        exit(EXIT_FAILURE);
     }
     else
     {
         if (childId == 0)
         {
+            concatErrorLogs(FORK_ERROR_MESSAGE);
             // WEB COMPONENT PROCESS
             pthread_t tid[60];
             int i = 0;
@@ -83,7 +89,8 @@ int main(int argv, char *argc[])
 
             if ((listenValue = listen(server_socket, 5)) == -1)
             {
-                perror("[-] Listen error WEB CLIENT");
+                perror(LISTEN_WEB_ERROR_MESSAGE);
+                concatErrorLogs(LISTEN_WEB_ERROR_MESSAGE);
                 exit(EXIT_FAILURE);
             };
 
@@ -93,7 +100,8 @@ int main(int argv, char *argc[])
             {
                 if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)
                 {
-                    perror("[-] Accept failure");
+                    perror(ACCEPT_ERROR_MESSAGE);
+                    concatErrorLogs(ACCEPT_ERROR_MESSAGE);
                     exit(EXIT_FAILURE);
                 };
 
@@ -270,6 +278,14 @@ void *socketThreadAdministrator(void *arg)
 
         }
         pthread_mutex_unlock(&lock_logs);
+
+        pthread_mutex_lock(&lock_error_logs);
+        if(strlen(errorLogs) != 0)
+        {
+            send(client_socket, errorLogs, sizeof(errorLogs), 0);
+            strcpy(errorLogs, "");
+        }
+        pthread_mutex_unlock(&lock_error_logs);
         
     }
 
@@ -431,4 +447,10 @@ void init_admin_component(pthread_t *threadId, int port)
     };
 
     //printf("Administrator component thread successfully initialized...\n");
+}
+
+void concatErrorLogs(const char* message)
+{
+    strcat(errorLogs, message);
+    strcat(errorLogs, "\n");
 }
