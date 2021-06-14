@@ -154,7 +154,7 @@ void sendFile(int sockfd)
 	int fd;
 	struct stat stbuf;
 
-	fd = open("min2_1.mp4", O_RDONLY); // should be get from command line
+	fd = open("min2_1.mp4", O_RDONLY); // should be get from xml
 	fstat(fd, &stbuf);
 
 	sendfile(sockfd, fd, 0, stbuf.st_size);

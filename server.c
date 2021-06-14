@@ -29,6 +29,8 @@ char clientMessageAdministrator[1024];
 char source[4096];
 char* pSharedMemoryLogs;
 
+int countFiles = 0;
+
 pthread_mutex_t lock            = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t lock_logs       = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t lock_error_logs = PTHREAD_MUTEX_INITIALIZER;
@@ -482,14 +484,24 @@ void write_file(int sockfd)
 {
     int n;
     FILE *fp;
-    char *filename = "file2.mp4"; // filename should be generated
+    char filename[64];
     char buffer[FILE_SIZE_CHUNK];
+    char bufferCounter[12];
+    
+    sprintf(bufferCounter, "%d", countFiles);
+
+    strcat(filename, "video_");
+    strcat(filename, bufferCounter);
+    strcat(filename, ".mp4");
+
+    countFiles++;
+    strcpy(bufferCounter, "");
 
     fp = fopen(filename, "wb");
     if (fp == NULL)
     {
         perror(FILE_CREATION_ERROR_MESSAGE);
-	      concatErrorLogs(FILE_CREATION_ERROR_MESSAGE);
+	    concatErrorLogs(FILE_CREATION_ERROR_MESSAGE);
         return;
     }
     
