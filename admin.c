@@ -54,7 +54,7 @@ int main(int argv, char* argc[])
     while(1)
     {
         read(server_socket, buff, sizeof(buff));
-        printf("Server: %s\n", buff);   
+        printf("%s", buff);   
     }
     
     close(server_socket);

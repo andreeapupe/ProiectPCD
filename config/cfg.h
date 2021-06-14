@@ -2,7 +2,8 @@
 #define PORT_ADM_CLIENT 18555
 #define PORT_WEB_CLIENT 8080
 #define PORT_WEB_CLIENT_ALTERNATIVE 9091
-#define MAX_STD_CLIENT_NUMBER 10
+
+#define MAX_CLIENTS_NUMBER 60
 #define FILE_SIZE_CHUNK 1024
 
 #define MAC 0
@@ -23,4 +24,10 @@ static const char ASSIGN_SO_REUSEADDR_ERROR_MESSAGE[256] = "[-] Cannot assign SO
 static const char LISTEN_ADMIN_ERROR_MESSAGE[256] = "Listen error ADMIN";
 static const char BIND_ADMIN_ERROR_MESSAGE[256] = "Bind error ADMIN";
 static const char FILE_CREATION_ERROR_MESSAGE[256] = "Error at file creation";
-static const char ADMIN_THREAD_ERROR_MESSAGE[256] = "Cannot create admin component thread"; 
+static const char ADMIN_THREAD_ERROR_MESSAGE[256] = "Cannot create admin component thread";
+
+struct arg_struct
+{
+    int* ptr;
+    char shm[1024];
+};

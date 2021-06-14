@@ -14,6 +14,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+// Includes for interprocess communications
+#include  <sys/ipc.h>
+#include  <sys/shm.h>
+
 // Project specific includes
 #include "config/cfg.h"
 #include "web.h"
@@ -21,10 +25,12 @@
 char serverResponse[256];
 char logs[1024];
 char errorLogs[2048];
+char* pSharedMemoryLogs;
 
 pthread_mutex_t lock            = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t lock_logs       = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t lock_error_logs = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock_shm_logs   = PTHREAD_MUTEX_INITIALIZER;
 
 void *socketThreadStandard(void *arg);
 void *socketThreadAdministrator(void *arg);
@@ -32,7 +38,7 @@ void *socketThreadWeb(void* arg);
 void *adminComponentThread(void *arg);
 void start_admin_component(int port, int *server_sock, int *client_sock);
 void write_file(int sockfd);
-void init_admin_component(pthread_t *threadId, int port);
+void init_admin_component(pthread_t *threadId, char *shmValue);
 void concatErrorLogs(const char* message);
 int createSocket();
 int isAFile(char *message);
@@ -40,6 +46,8 @@ int isAFile(char *message);
 int main(int argv, char *argc[])
 {
     pid_t childId;
+    int sharedMemoryLogsId = shmget(IPC_PRIVATE, 1024*sizeof(char), IPC_CREAT | 0666);
+    pSharedMemoryLogs = (char*)shmat(sharedMemoryLogsId, NULL, 0);
 
     childId = fork();
 
@@ -53,9 +61,8 @@ int main(int argv, char *argc[])
     {
         if (childId == 0)
         {
-            concatErrorLogs(FORK_ERROR_MESSAGE);
             // WEB COMPONENT PROCESS
-            pthread_t tid[60];
+            pthread_t tid[MAX_CLIENTS_NUMBER];
             int i = 0;
             int server_socket, client_socket;
 
@@ -108,22 +115,21 @@ int main(int argv, char *argc[])
 
                 fprintf(stdout, "[+] New connection from %s:%d\n", inet_ntoa(client_address.sin_addr), (int)client_address.sin_port);
                 
-
                 char buffer_port[12];
-                pthread_mutex_lock(&lock_logs);
-                strcat(logs, "[+] New connection from ");
-                strcat(logs, inet_ntoa(client_address.sin_addr));
+                pthread_mutex_lock(&lock_shm_logs);
+                strcat(pSharedMemoryLogs, "[+] New web connection from ");
+                strcat(pSharedMemoryLogs, inet_ntoa(client_address.sin_addr));
                 //_itoa((int)client_address.sin_port, buffer_port, 10);
                 sprintf(buffer_port, "%d", (int)client_address.sin_port);
-                strcat(logs, ":");
-                strcat(logs, buffer_port);
-                pthread_mutex_unlock(&lock_logs);
-
-
-                pthread_t t;
+                strcat(pSharedMemoryLogs, ":");
+                strcat(pSharedMemoryLogs, buffer_port);
+                strcat(pSharedMemoryLogs, "\n");
+                pthread_mutex_unlock(&lock_shm_logs);
+                
                 int *pclient = malloc(sizeof(int));
                 *pclient = client_socket;
-                pthread_create(&t, NULL, socketThreadWeb, pclient);
+                pthread_create(&tid[i], NULL, socketThreadWeb, pclient);
+                i++;
             }
 
             wait(NULL);
@@ -132,10 +138,10 @@ int main(int argv, char *argc[])
         else
         {
             // STANDARD CLIENT PROCESS
-            pthread_t tid[60];
+            pthread_t tid[MAX_CLIENTS_NUMBER];
             pthread_t admin_component;
 
-            init_admin_component(&admin_component, PORT_ADM_CLIENT);
+            init_admin_component(&admin_component, pSharedMemoryLogs);
             bzero(&logs, sizeof(logs));
 
             int i = 0;
@@ -159,14 +165,14 @@ int main(int argv, char *argc[])
             if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
             {
                 perror(BIND_STD_ERROR_MESSAGE);
-		concatErrorLogs(BIND_STD_ERROR_MESSAGE);
+		        concatErrorLogs(BIND_STD_ERROR_MESSAGE);
                 exit(EXIT_FAILURE);
             };
 
             if ((listenValue = listen(server_socket, 5)) == -1)
             {
                 perror(LISTEN_STD_ERROR_MESSAGE);
-		concatErrorLogs(LISTEN_STD_ERROR_MESSAGE);
+		        concatErrorLogs(LISTEN_STD_ERROR_MESSAGE);
                 exit(EXIT_FAILURE);
             };
 
@@ -177,7 +183,7 @@ int main(int argv, char *argc[])
                 if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)
                 {
                     perror(ACCEPT_ERROR_MESSAGE);
-		    concatErrorLogs(ACCEPT_ERROR_MESSAGE);
+		            concatErrorLogs(ACCEPT_ERROR_MESSAGE);
                     exit(EXIT_FAILURE);
                 };
 
@@ -191,12 +197,13 @@ int main(int argv, char *argc[])
                 sprintf(buffer_port, "%d", (int)client_address.sin_port);
                 strcat(logs, ":");
                 strcat(logs, buffer_port);
+                strcat(logs, "\n");
                 pthread_mutex_unlock(&lock_logs);
 
-                pthread_t t;
                 int *pclient = malloc(sizeof(int));
                 *pclient = client_socket;
-                pthread_create(&t, NULL, socketThreadStandard, pclient);
+                pthread_create(&tid[i], NULL, socketThreadStandard, pclient);
+                i++;
             }
 
             wait(NULL);
@@ -266,7 +273,13 @@ void *socketThreadStandard(void *arg)
 
 void *socketThreadAdministrator(void *arg)
 {
-    int client_socket = *((int *)arg);
+    struct arg_struct *args = arg;
+
+    int client_socket = *args->ptr;
+    char pSharedMemoryLogsLocal[1024];
+
+    strcpy(pSharedMemoryLogsLocal, args->shm);
+
     char clientMessage[1024];
     char sampleMessage[1024] = "From admin";
 
@@ -277,11 +290,15 @@ void *socketThreadAdministrator(void *arg)
     while(1)
     {
         pthread_mutex_lock(&lock_logs);
-        if(strlen(logs) != 0)
+        if(strlen(logs) != 0 || strlen(pSharedMemoryLogs))
         {
+            pthread_mutex_lock(&lock_shm_logs);
+            strcat(logs, pSharedMemoryLogs);
+            pthread_mutex_unlock(&lock_shm_logs);
             send(client_socket, logs, sizeof(logs), 0);
             strcpy(logs, "");
-
+            strcpy(pSharedMemoryLogs, "");
+            strcpy(pSharedMemoryLogsLocal, "");
         }
         pthread_mutex_unlock(&lock_logs);
 
@@ -334,7 +351,10 @@ void *adminComponentThread(void *arg)
 {
     //printf("Admin component started\n");
     char clientMessage[1024];
-    int port = *((int*)arg);
+
+    int port = PORT_ADM_CLIENT;
+
+    char* shmValue = (char*)arg;
     int server_socket, client_socket;
 
     server_socket = createSocket();
@@ -356,7 +376,7 @@ void *adminComponentThread(void *arg)
     if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
     {
         perror(BIND_ADMIN_ERROR_MESSAGE);
-	concatErrorLogs(BIND_ADMIN_ERROR_MESSAGE);
+	    concatErrorLogs(BIND_ADMIN_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     };
 
@@ -376,16 +396,24 @@ void *adminComponentThread(void *arg)
             if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)  
             {
                 perror(ACCEPT_ERROR_MESSAGE);
-		concatErrorLogs(ACCEPT_ERROR_MESSAGE);
+		        concatErrorLogs(ACCEPT_ERROR_MESSAGE);
                 exit(EXIT_FAILURE);
             };
 
             fprintf(stdout, "[+] New connection from %s:%d\n", inet_ntoa(client_address.sin_addr), (int)client_address.sin_port);
 
+            struct arg_struct args;
+
             pthread_t t;
             int *pclient = malloc(sizeof(int));
             *pclient = client_socket;
-            pthread_create(&t, NULL, socketThreadAdministrator, pclient);
+
+            args.ptr = pclient;
+            strcpy(args.shm, shmValue);
+            
+
+
+            pthread_create(&t, NULL, socketThreadAdministrator, (void *)&args);
         }
         else
         {
@@ -393,7 +421,7 @@ void *adminComponentThread(void *arg)
             if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)  
             {
                 perror(ACCEPT_ERROR_MESSAGE);
-		concatErrorLogs(ACCEPT_ERROR_MESSAGE);
+		        concatErrorLogs(ACCEPT_ERROR_MESSAGE);
                 exit(EXIT_FAILURE);
             };
 
@@ -425,7 +453,7 @@ void write_file(int sockfd)
     if (fp == NULL)
     {
         perror(FILE_CREATION_ERROR_MESSAGE);
-	concatErrorLogs(FILE_CREATION_ERROR_MESSAGE);
+	    concatErrorLogs(FILE_CREATION_ERROR_MESSAGE);
         return;
     }
     
@@ -445,15 +473,15 @@ void write_file(int sockfd)
     return;
 }
 
-void init_admin_component(pthread_t *threadId, int port)
+void init_admin_component(pthread_t *threadId, char* shmValue)
 {
-    int *pPort = malloc(sizeof(int));
-    *pPort = port;
+    //int *pPort = malloc(sizeof(int));
+    //*pPort = port;
 
-    if (pthread_create(threadId, NULL, adminComponentThread, pPort) == -1)
+    if (pthread_create(threadId, NULL, adminComponentThread, shmValue) == -1)
     {
         perror(ADMIN_THREAD_ERROR_MESSAGE);
-	concatErrorLogs(ADMIN_THREAD_ERROR_MESSAGE);
+	    concatErrorLogs(ADMIN_THREAD_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     };
 
