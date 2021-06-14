@@ -37,7 +37,7 @@ pthread_mutex_t lock_source     = PTHREAD_MUTEX_INITIALIZER;
 
 void *socketThreadStandard(void *arg);
 void *socketThreadAdministrator(void *arg);
-void *socketThreadWeb(void* arg);
+void* socketThreadWeb(void* arg);
 void *adminComponentThread(void *arg);
 void start_admin_component(int port, int *server_sock, int *client_sock);
 void write_file(int sockfd);
@@ -56,9 +56,7 @@ int main(int argv, char *argc[])
 
     if (childId == -1)
     {
-        perror(FORK_ERROR_MESSAGE);
-        concatErrorLogs(FORK_ERROR_MESSAGE);
-        exit(EXIT_FAILURE);
+        perror("[-] Cannot fork\n");
     }
     else
     {
@@ -85,8 +83,7 @@ int main(int argv, char *argc[])
 
             if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
             {
-                perror(BIND_WEB_ERROR_MESSAGE);
-		        concatErrorLogs(BIND_WEB_ERROR_MESSAGE);
+                perror("[-] Bind error WEB CLIENT on port 8080");
                 
                 fprintf(stdout, "[+] Trying bind socket on port %d\n", PORT_WEB_CLIENT_ALTERNATIVE);
                 server_address.sin_port = htons(PORT_WEB_CLIENT_ALTERNATIVE);
@@ -100,8 +97,7 @@ int main(int argv, char *argc[])
 
             if ((listenValue = listen(server_socket, 5)) == -1)
             {
-                perror(LISTEN_WEB_ERROR_MESSAGE);
-                concatErrorLogs(LISTEN_WEB_ERROR_MESSAGE);
+                perror("[-] Listen error WEB CLIENT");
                 exit(EXIT_FAILURE);
             };
 
@@ -111,8 +107,7 @@ int main(int argv, char *argc[])
             {
                 if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)
                 {
-                    perror(ACCEPT_ERROR_MESSAGE);
-                    concatErrorLogs(ACCEPT_ERROR_MESSAGE);
+                    perror("[-] Accept failure");
                     exit(EXIT_FAILURE);
                 };
 
@@ -168,14 +163,14 @@ int main(int argv, char *argc[])
             if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
             {
                 perror(BIND_STD_ERROR_MESSAGE);
-		        concatErrorLogs(BIND_STD_ERROR_MESSAGE);
+		            concatErrorLogs(BIND_STD_ERROR_MESSAGE);
                 exit(EXIT_FAILURE);
             };
 
             if ((listenValue = listen(server_socket, 5)) == -1)
             {
                 perror(LISTEN_STD_ERROR_MESSAGE);
-		        concatErrorLogs(LISTEN_STD_ERROR_MESSAGE);
+		            concatErrorLogs(LISTEN_STD_ERROR_MESSAGE);
                 exit(EXIT_FAILURE);
             };
 
@@ -186,7 +181,7 @@ int main(int argv, char *argc[])
                 if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)
                 {
                     perror(ACCEPT_ERROR_MESSAGE);
-		            concatErrorLogs(ACCEPT_ERROR_MESSAGE);
+		                concatErrorLogs(ACCEPT_ERROR_MESSAGE);
                     exit(EXIT_FAILURE);
                 };
 
@@ -220,15 +215,13 @@ int createSocket()
     int server_socket;
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
-        perror(CREATE_SOCKET_ERROR_MESSAGE);
-	    concatErrorLogs(CREATE_SOCKET_ERROR_MESSAGE);
+        perror("[-] Cannot create socket");
         exit(EXIT_FAILURE);
     };
 
     if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) == -1)
     {
-        perror(ASSIGN_SO_REUSEADDR_ERROR_MESSAGE);
-	    concatErrorLogs(ASSIGN_SO_REUSEADDR_ERROR_MESSAGE);
+        perror("[-] Cannot assign SO_REUSEADDR");
         exit(EXIT_FAILURE);
     };
 
@@ -316,14 +309,6 @@ void *socketThreadAdministrator(void *arg)
             strcpy(pSharedMemoryLogsLocal, "");
         }
         pthread_mutex_unlock(&lock_logs);
-
-        pthread_mutex_lock(&lock_error_logs);
-        if(strlen(errorLogs) != 0)
-        {
-            send(client_socket, errorLogs, sizeof(errorLogs), 0);
-            strcpy(errorLogs, "");
-        }
-        pthread_mutex_unlock(&lock_error_logs);
         
     }
 
@@ -348,7 +333,18 @@ void* socketThreadWeb(void* arg)
     {
         strcpy(serverResponse,responseCode(defaultHttpResponse,"200"));
 
-        struct returnExample value = reqToStruct(clientMessage);
+        struct returnExample structura = reqToStruct(clientMessage);
+        if(strcmp(structura.bdy[0].value,"send")==0)
+            for (int i =0;i< atoi(structura.bdy[1].value);i++)
+            {
+                system(xmlSendList[i]);
+            }
+        if(strcmp(structura.bdy[0].value,"get")==0)
+            for (int i =0;i< atoi(structura.bdy[1].value);i++)
+            {
+                system(xmlGetList[i]);
+            }
+         
 
     }
     //sleep(5);
@@ -391,13 +387,13 @@ void *adminComponentThread(void *arg)
     if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
     {
         perror(BIND_ADMIN_ERROR_MESSAGE);
-	    concatErrorLogs(BIND_ADMIN_ERROR_MESSAGE);
+	      concatErrorLogs(BIND_ADMIN_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     };
 
     if ((listenValue = listen(server_socket, 5)) == -1)
     {
-        perror(LISTEN_ADMIN_ERROR_MESSAGE);
+        perror("[-] Listen error");
         exit(EXIT_FAILURE);
     };
 
@@ -411,7 +407,7 @@ void *adminComponentThread(void *arg)
             if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)  
             {
                 perror(ACCEPT_ERROR_MESSAGE);
-		        concatErrorLogs(ACCEPT_ERROR_MESSAGE);
+		            concatErrorLogs(ACCEPT_ERROR_MESSAGE);
                 exit(EXIT_FAILURE);
             };
 
@@ -436,7 +432,7 @@ void *adminComponentThread(void *arg)
             if ((client_socket = accept(server_socket, (struct sockaddr *)&client_address, (socklen_t *)&client_address_len)) < 0)  
             {
                 perror(ACCEPT_ERROR_MESSAGE);
-		        concatErrorLogs(ACCEPT_ERROR_MESSAGE);
+		            concatErrorLogs(ACCEPT_ERROR_MESSAGE);
                 exit(EXIT_FAILURE);
             };
 
@@ -468,7 +464,7 @@ void write_file(int sockfd)
     if (fp == NULL)
     {
         perror(FILE_CREATION_ERROR_MESSAGE);
-	    concatErrorLogs(FILE_CREATION_ERROR_MESSAGE);
+	      concatErrorLogs(FILE_CREATION_ERROR_MESSAGE);
         return;
     }
     
@@ -496,15 +492,9 @@ void init_admin_component(pthread_t *threadId, char* shmValue)
     if (pthread_create(threadId, NULL, adminComponentThread, shmValue) == -1)
     {
         perror(ADMIN_THREAD_ERROR_MESSAGE);
-	    concatErrorLogs(ADMIN_THREAD_ERROR_MESSAGE);
+	      concatErrorLogs(ADMIN_THREAD_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     };
 
     //printf("Administrator component thread successfully initialized...\n");
-}
-
-void concatErrorLogs(const char* message)
-{
-    strcat(errorLogs, message);
-    strcat(errorLogs, "\n");
 }
