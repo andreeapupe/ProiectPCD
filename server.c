@@ -25,12 +25,15 @@
 char serverResponse[256];
 char logs[1024];
 char errorLogs[2048];
+char source[4096];
 char* pSharedMemoryLogs;
+
 
 pthread_mutex_t lock            = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t lock_logs       = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t lock_error_logs = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t lock_shm_logs   = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock_source     = PTHREAD_MUTEX_INITIALIZER;
 
 void *socketThreadStandard(void *arg);
 void *socketThreadAdministrator(void *arg);
@@ -246,7 +249,10 @@ void *socketThreadStandard(void *arg)
     }
     else
     {
-        //printf("From client: %s\n\n", clientMessage);
+        if(strstr(clientMessage, "INFO_INCOMING") != NULL)
+        {
+           strcpy(source, "clientMessage");
+        }
     }
 
     // // post/get request from web
@@ -289,6 +295,15 @@ void *socketThreadAdministrator(void *arg)
 
     while(1)
     {
+        pthread_mutex_lock(&lock_source);
+        if(strlen(source) != 0)
+        {
+            send(client_socket, source, sizeof(source), 0);
+            strcpy(source, "");
+        }
+        pthread_mutex_unlock(&lock_source);
+
+
         pthread_mutex_lock(&lock_logs);
         if(strlen(logs) != 0 || strlen(pSharedMemoryLogs))
         {
