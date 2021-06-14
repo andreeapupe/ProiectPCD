@@ -6,7 +6,7 @@
 #define MAX_CLIENTS_NUMBER 60
 #define FILE_SIZE_CHUNK 1024
 
-#define MAC 0
+#define MAC 1
 
 #define TRUE 1
 #define FALSE 0

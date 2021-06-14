@@ -1,13 +1,8 @@
 <car>
     <uid>
-        <model>
-            Dodge
-        </model>
-        <vin>
-            AS8JDM9DEOD8
-        </vin>
+        <model>Dodge</model>
+        <vin>AS8JDM9DEOD8</vin>
     </uid>
-    
     <data>
         <speed>
             <value>56.6</value>
@@ -21,5 +16,7 @@
             </time>
         </datetime>
     </data>
+
+    <attachment>test_data/videos/min2_1.mp4</attachment>        
 
 </car>

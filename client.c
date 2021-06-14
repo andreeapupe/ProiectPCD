@@ -9,26 +9,33 @@
 #include <arpa/inet.h>
 
 #include "config/cfg.h"
+#include "car.h"
 
 // MAX = Maximum number of octets
 #define MAX 1024
 #define SA struct sockaddr
 ;
-void validate_args(int argc, char *argv[], int execMode, char *filename);
-void handle_connection(int sockfd);
-void sendFile();
+
+#define EXEC_MODE_UNKNOWN 0
+#define EXEC_MODE_SEND 1
+#define EXEC_MODE_GET 2
+
+int validate_args(int argc, char *argv[], int *execMode, char *path);
+void handle_send_connection(char *path, int sockfd);
 
 int main(int argc, char *argv[])
 {
 	int sockfd, connfd;
 	int execMode;
-	char filename[256];
+	char xmlPath[256];
 	struct sockaddr_in servaddr, cli;
 
-	validate_args(argc, argv, execMode, filename);
+	if (FALSE == validate_args(argc, argv, &execMode, xmlPath)) {
+		return 0;
+	}
 
 	printf("Exec mode: %d\n", execMode);
-	printf("Filename: %s\n", filename);
+	printf("XML Path: %s\n", xmlPath);
 
 	// Socket creation
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -53,72 +60,55 @@ int main(int argc, char *argv[])
 	if (connect(sockfd, (SA *)&servaddr, sizeof(servaddr)) != 0)
 	{
 		printf("[-] Client cannot connect to server...\n");
-		exit(0);
 	}
 	else
 	{
 		printf("[+] Successfully connected to the server..\n\n");
 	}
 
-	handle_connection(sockfd);
+	if (EXEC_MODE_SEND == execMode) {
+		Car_t car;
+		if (TRUE == parse_car(xmlPath, &car)) {
+			handle_send_connection(car.attachmentPath, sockfd);
+		}
+	} 
+	else{
+		//TODO: handle get_connection
+	}
 	close(sockfd);
+
+	return 0;
 }
 
-void validate_args(int argc, char *argv[], int execMode, char *filename)
+int validate_args(int argc, char *argv[], int *execMode, char *filename)
 {
-	int c;
-
-	while (1)
-	{
-		int option_index = 0;
-		static struct option long_options[] =
-			{
-				{"send", required_argument, 0, 0},
-				{"get", required_argument, 0, 0},
-				{0, 0, 0, 0}};
-
-		if ((c = getopt_long(argc, argv, "s:g:", long_options, &option_index) == -1))
-		{
-			break;
-		}
-
-		switch (c)
-		{
-		case 0:
-			printf("option %s", long_options[option_index].name);
-
-			if (option_index == 0)
-			{
-				execMode = 1;
-			}
-
-			if (option_index == 1)
-			{
-				execMode = 2;
-			}
-
-			if (optarg)
-			{
-				strcpy(filename, optarg);
-				printf(" with arg %s\n", optarg);
-			}
-			break;
-		default:
-			printf("[-] getopt returned character code 0%o ??\n", c);
+	*execMode = EXEC_MODE_UNKNOWN;
+	filename[0] = 0;
+	if (3 == argc) {
+		for (int i = 1; i < argc; i++) {
+			 char *arg = argv[i];
+			 if (0 == strcmp("--send", arg)) {
+			 	 *execMode = EXEC_MODE_SEND;
+			 }
+			 else
+			 if (0 == strcmp("--get", arg)) {
+			 	 *execMode = EXEC_MODE_GET;
+			 }
+			 else {
+			 	 strcpy(filename, arg);
+			 }
 		}
 	}
 
-	if (optind < argc)
-	{
-		printf("[-] non-option arguments: ");
-		while (optind < argc)
-		{
-			printf("%s\n", argv[optind++]);
-		}
+	if (execMode == EXEC_MODE_UNKNOWN || 0 == strlen(filename)) {
+		printf("Invalid arguments\n./client [--send|--get] <path_to_xml_file>");
+		return FALSE;
 	}
+	return TRUE;
 }
 
-void handle_connection(int sockfd)
+void sendFile(char *path, int sockfd);
+void handle_send_connection(char *path, int sockfd)
 {
 	char buff[MAX];
 	int n;
@@ -126,21 +116,26 @@ void handle_connection(int sockfd)
 	bzero(buff, sizeof(buff));
 	strcpy(buff, "FILE_INCOMING");
 	write(sockfd, buff, sizeof(buff));
-	sendFile(sockfd);
+	sendFile(path, sockfd);
 
 	bzero(buff, sizeof(buff));
 	read(sockfd, buff, sizeof(buff));
 	printf("Server: %s", buff);
 }
 
-void sendFile(int sockfd)
+void sendFile(char *path, int sockfd)
 {
 #if MAC
 	unsigned char buffer[1024];
 	size_t bytesRead = 0;
 	char buff[1024] = "FILE_INCOMING";
 
-	FILE *fd1 = fopen("min2_1.mp4", "rb");
+	FILE *fd1 = fopen(path, "rb");
+
+	if (NULL == fd1) {
+		printf("Cannot open file at path: %s", path);
+		return;
+	}
 
 	while ((bytesRead = fread(buffer, 1, sizeof(buffer), fd1)) > 0)
 	{
@@ -154,7 +149,12 @@ void sendFile(int sockfd)
 	int fd;
 	struct stat stbuf;
 
-	fd = open("min2_1.mp4", O_RDONLY); // should be get from xml
+	fd = open(path, O_RDONLY); // should be get from xml
+
+	if (0 == fd) {
+		printf("Cannot open file at path: %s", path);
+		return;
+	}
 	fstat(fd, &stbuf);
 
 	sendfile(sockfd, fd, 0, stbuf.st_size);
