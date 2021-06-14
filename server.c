@@ -25,17 +25,20 @@
 char serverResponse[256];
 char logs[1024];
 char errorLogs[2048];
+char clientMessageAdministrator[1024];
 char* pSharedMemoryLogs;
 
-pthread_mutex_t lock            = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t lock_logs       = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t lock_error_logs = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t lock_shm_logs   = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock              = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock_logs         = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock_error_logs   = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock_shm_logs     = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t lock_client_msg   = PTHREAD_MUTEX_INITIALIZER;
 
 void *socketThreadStandard(void *arg);
 void *socketThreadAdministrator(void *arg);
 void *socketThreadWeb(void* arg);
 void *adminComponentThread(void *arg);
+void *handlerRemoveProcess(void *arg);
 void start_admin_component(int port, int *server_sock, int *client_sock);
 void write_file(int sockfd);
 void init_admin_component(pthread_t *threadId, char *shmValue);
@@ -117,7 +120,7 @@ int main(int argv, char *argc[])
                 
                 char buffer_port[12];
                 pthread_mutex_lock(&lock_shm_logs);
-                strcat(pSharedMemoryLogs, "[+] New web connection from ");
+                strcat(pSharedMemoryLogs, "[+] New web connection ");
                 strcat(pSharedMemoryLogs, inet_ntoa(client_address.sin_addr));
                 //_itoa((int)client_address.sin_port, buffer_port, 10);
                 sprintf(buffer_port, "%d", (int)client_address.sin_port);
@@ -232,6 +235,30 @@ int createSocket()
     return server_socket;
 }
 
+void *handlerRemoveProcess(void *arg)
+{
+    int client_socket = *((int *)arg);
+
+    while(TRUE)
+    {
+        pthread_mutex_lock(&lock_client_msg);
+        recv(client_socket, &clientMessageAdministrator, 1024, 0);
+        printf("Admin: %s\n", clientMessageAdministrator);
+        pthread_mutex_unlock(&lock_client_msg);
+
+        if (strstr(clientMessageAdministrator, "REMOVE_LAST") != 0)
+        {
+            
+        }
+
+        pthread_mutex_lock(&lock_client_msg);
+        strcpy(clientMessageAdministrator, "");
+        pthread_mutex_unlock(&lock_client_msg);
+
+        sleep(1);
+    }
+}
+
 void *socketThreadStandard(void *arg)
 {
     int newSocket = *((int *)arg);
@@ -274,23 +301,21 @@ void *socketThreadStandard(void *arg)
 void *socketThreadAdministrator(void *arg)
 {
     struct arg_struct *args = arg;
+    pthread_t listenForRemoveSignals;
 
     int client_socket = *args->ptr;
     char pSharedMemoryLogsLocal[1024];
 
     strcpy(pSharedMemoryLogsLocal, args->shm);
 
-    char clientMessage[1024];
     char sampleMessage[1024] = "From admin";
 
-
-    recv(client_socket, &clientMessage, 1024, 0);
-    printf("Admin: %s\n", clientMessage);
+    pthread_create(&listenForRemoveSignals, NULL, handlerRemoveProcess, (void *)&client_socket);
 
     while(1)
     {
         pthread_mutex_lock(&lock_logs);
-        if(strlen(logs) != 0 || strlen(pSharedMemoryLogs))
+        if(strlen(logs) != 0 || strlen(pSharedMemoryLogs) != 0)
         {
             pthread_mutex_lock(&lock_shm_logs);
             strcat(logs, pSharedMemoryLogs);

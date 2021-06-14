@@ -2,16 +2,24 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <pthread.h>
 #include <sys/socket.h>
-#include <getopt.h>
+#include <sys/wait.h>
 #include <sys/stat.h>
+
+#include <getopt.h>
 #include <fcntl.h>
+
 #include <arpa/inet.h>
 
 #include "config/cfg.h"
 
+void* handlerRmCLient(void* arg);
+
 int main(int argv, char* argc[])
 {
+    pthread_t threadRemoveLastCLient;
     int server_socket;
 
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
@@ -41,6 +49,8 @@ int main(int argv, char* argc[])
 		printf("[-] Client cannot connect to server...\n");
 		exit(0);
 	}
+
+    pthread_create(&threadRemoveLastCLient, NULL, handlerRmCLient, server_socket);
     
     fprintf(stdout, "[+] Connected to server\n");
     char buff[1024];
@@ -51,7 +61,7 @@ int main(int argv, char* argc[])
 
     bzero(buff, sizeof(buff));
 
-    while(1)
+    while(TRUE)
     {
         read(server_socket, buff, sizeof(buff));
         printf("%s", buff);   
@@ -60,4 +70,9 @@ int main(int argv, char* argc[])
     close(server_socket);
 
     exit(EXIT_SUCCESS);
+}
+
+void* handlerRmCLient(void* arg)
+{
+
 }
