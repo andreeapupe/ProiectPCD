@@ -103,3 +103,4 @@ dkms.conf
 
 ### --------- Assets --------- ###
 test_data/videos/*
+python/__pycache__
