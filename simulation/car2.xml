@@ -1,25 +1,22 @@
 <car>
     <uid>
-        <model>
-            Dodge
-        </model>
-        <vin>
-            AS8JDM9DEOD8
-        </vin>
+        <model>Porsche</model>
+        <vin>PC7ABC4PD3D2</vin>
     </uid>
-    
     <data>
         <speed>
-            <value>56.6</value>
+            <value>70.2</value>
             <measureUnit>KM/H</measureUnit>
         </speed>
         <datetime>
-            <date>20210413</date>
+            <date>20210303</date>
             <time>
-                <value>1453</value>
+                <value>0828</value>
                 <timezone>EEST</timezone>
             </time>
         </datetime>
     </data>
+
+    <attachment>../test_data/videos/min2_2.mp4</attachment>        
 
 </car>

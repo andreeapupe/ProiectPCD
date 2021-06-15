@@ -1,25 +1,22 @@
 <car>
     <uid>
-        <model>
-            Dodge
-        </model>
-        <vin>
-            AS8JDM9DEOD8
-        </vin>
+        <model>Renault</model>
+        <vin>RE8WRI8KS3I3</vin>
     </uid>
-    
     <data>
         <speed>
-            <value>56.6</value>
+            <value>65.4</value>
             <measureUnit>KM/H</measureUnit>
         </speed>
         <datetime>
             <date>20210413</date>
             <time>
-                <value>1453</value>
+                <value>1327</value>
                 <timezone>EEST</timezone>
             </time>
         </datetime>
     </data>
+
+    <attachment>../test_data/videos/min2_6.mp4</attachment>        
 
 </car>
