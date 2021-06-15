@@ -15,14 +15,17 @@
 // MAX = Maximum number of octets
 #define MAX 1024
 #define SA struct sockaddr
-;
 
 #define EXEC_MODE_UNKNOWN 0
 #define EXEC_MODE_SEND 1
 #define EXEC_MODE_GET 2
 
+
+char carData[MAX];
+
 int validate_args(int argc, char *argv[], int *execMode, char *path);
 void handle_send_connection(char *path, int sockfd);
+void handle_string_parser(struct _Car_t car);
 
 int main(int argc, char *argv[])
 {
@@ -70,6 +73,7 @@ int main(int argc, char *argv[])
 	if (EXEC_MODE_SEND == execMode) {
 		Car_t car;
 		if (TRUE == parse_car(xmlPath, &car)) {
+			handle_string_parser(car);
 			handle_send_connection(car.attachmentPath, sockfd);
 		}
 	} 
@@ -115,13 +119,50 @@ void handle_send_connection(char *path, int sockfd)
 	int n;
 
 	bzero(buff, sizeof(buff));
+	strcpy(buff, "CAR_DATA_INCOMING");
+
+	write(sockfd, buff, sizeof(buff));
+	write(sockfd, carData, sizeof(carData));
+
+	bzero(buff, sizeof(buff));
 	strcpy(buff, "FILE_INCOMING");
+
 	write(sockfd, buff, sizeof(buff));
 	sendFile(path, sockfd);
 
 	bzero(buff, sizeof(buff));
 	read(sockfd, buff, sizeof(buff));
-	printf("Server: %s", buff);
+	//printf("Server: %s", buff);
+}
+
+void handle_string_parser(struct _Car_t car)
+{
+	strcat(carData, "Model: ");
+	strcat(carData, car.model);
+	strcat(carData, "\n");
+
+	strcat(carData, "VIN: ");
+	strcat(carData, car.vin);
+	strcat(carData, "\n");
+
+	strcat(carData, "Speed: ");
+	strcat(carData, car.speed);
+	strcat(carData, "\n");
+
+	strcat(carData, "Speed unit: ");
+	strcat(carData, car.speedUnit);
+	strcat(carData, "\n");
+
+	strcat(carData, "Date: ");
+	strcat(carData, car.date);
+	strcat(carData, "\n");
+
+	strcat(carData, "Time: ");
+	strcat(carData, car.time);
+	strcat(carData, "\n");
+
+	strcat(carData, "Timezone: ");
+	strcat(carData, car.timeZone);
 }
 
 void sendFile(char *path, int sockfd)
