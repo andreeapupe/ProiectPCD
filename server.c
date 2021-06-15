@@ -23,10 +23,10 @@
 #include "web.h"
 
 char serverResponse[256];
-char logs[1024];
+char logs[4096];
 char errorLogs[2048];
 char clientMessageAdministrator[1024];
-char source[4096];
+char source[2048];
 char* pSharedMemoryLogs;
 
 int countFiles = 0;
@@ -54,7 +54,7 @@ int isAFile(char *message);
 int main(int argv, char *argc[])
 {
     pid_t childId;
-    int sharedMemoryLogsId = shmget(IPC_PRIVATE, 1024*sizeof(char), IPC_CREAT | 0666);
+    int sharedMemoryLogsId = shmget(IPC_PRIVATE, 4096*sizeof(char), IPC_CREAT | 0666);
     pSharedMemoryLogs = (char*)shmat(sharedMemoryLogsId, NULL, 0);
 
     childId = fork();
@@ -281,7 +281,7 @@ void *socketThreadStandard(void *arg)
             fprintf(stdout, "File: %s\n", clientMessage);
             write_file(newSocket);
         }
-        
+
     }
     if(strstr(clientMessage, "INFO_INCOMING") != NULL)
     {
@@ -316,19 +316,24 @@ void *socketThreadAdministrator(void *arg)
     pthread_t listenForRemoveSignals;
 
     int client_socket = *args->ptr;
-    char pSharedMemoryLogsLocal[1024];
+    char pSharedMemoryLogsLocal[4096];
 
     strcpy(pSharedMemoryLogsLocal, args->shm);
 
     char sampleMessage[1024] = "From admin";
+    char fromAdmin[1024];
 
-    pthread_create(&listenForRemoveSignals, NULL, handlerRemoveProcess, (void *)&client_socket);
+    recv(client_socket, &fromAdmin, 1024, 0);
+    printf("Administrator: %s\n", fromAdmin);
 
-    while(1)
+    //pthread_create(&listenForRemoveSignals, NULL, handlerRemoveProcess, (void *)&client_socket);
+
+    while(TRUE)
     {
         pthread_mutex_lock(&lock_source);
         if(strlen(source) != 0)
         {
+            strcat(source, "\n");
             send(client_socket, source, sizeof(source), 0);
             strcpy(source, "");
         }
@@ -336,17 +341,20 @@ void *socketThreadAdministrator(void *arg)
 
 
         pthread_mutex_lock(&lock_logs);
-        if(strlen(logs) != 0 || strlen(pSharedMemoryLogs) != 0)
+        if(strlen(logs) != 0)
         {
-            pthread_mutex_lock(&lock_shm_logs);
-            strcat(logs, pSharedMemoryLogs);
-            pthread_mutex_unlock(&lock_shm_logs);
             send(client_socket, logs, sizeof(logs), 0);
             strcpy(logs, "");
-            strcpy(pSharedMemoryLogs, "");
-            strcpy(pSharedMemoryLogsLocal, "");
         }
         pthread_mutex_unlock(&lock_logs);
+
+        pthread_mutex_lock(&lock_shm_logs);
+        if (strlen(pSharedMemoryLogsLocal) != 0)
+        {
+            send(client_socket, pSharedMemoryLogsLocal, sizeof(pSharedMemoryLogsLocal), 0);
+            strcpy(pSharedMemoryLogsLocal, "");
+        }
+        pthread_mutex_unlock(&lock_shm_logs);
         
     }
 
@@ -425,7 +433,7 @@ void *adminComponentThread(void *arg)
     if ((bindValue = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address)) == -1))
     {
         perror(BIND_ADMIN_ERROR_MESSAGE);
-	      concatErrorLogs(BIND_ADMIN_ERROR_MESSAGE);
+	    concatErrorLogs(BIND_ADMIN_ERROR_MESSAGE);
         exit(EXIT_FAILURE);
     };
 

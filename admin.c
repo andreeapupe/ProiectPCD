@@ -50,10 +50,10 @@ int main(int argv, char* argc[])
 		exit(0);
 	}
 
-    pthread_create(&threadRemoveLastCLient, NULL, handlerRmCLient, server_socket);
+    //pthread_create(&threadRemoveLastCLient, NULL, handlerRmCLient, server_socket);
     
     fprintf(stdout, "[+] Connected to server\n");
-    char buff[1024];
+    char buff[4096];
 
 	bzero(buff, sizeof(buff));
 	strcpy(buff, "ADMIN HERE");
