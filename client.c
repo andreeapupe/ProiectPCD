@@ -6,26 +6,26 @@
 #include <sys/socket.h>
 #include <getopt.h>
 #include <sys/stat.h>
+#include <sys/sendfile.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
 
 #include "config/cfg.h"
 #include "car.h"
+#include "ezxml.h"
 
 // MAX = Maximum number of octets
 #define MAX 1024
 #define SA struct sockaddr
 
+
 #define EXEC_MODE_UNKNOWN 0
 #define EXEC_MODE_SEND 1
 #define EXEC_MODE_GET 2
 
-
-char carData[MAX];
-
 int validate_args(int argc, char *argv[], int *execMode, char *path);
 void handle_send_connection(char *path, int sockfd);
-void handle_string_parser(struct _Car_t car);
+void handle_get_connection(char *path, int sockfd);
 
 int main(int argc, char *argv[])
 {
@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
 	if (FALSE == validate_args(argc, argv, &execMode, xmlPath)) {
 		return 0;
 	}
+
 
 	printf("Exec mode: %d\n", execMode);
 	printf("XML Path: %s\n", xmlPath);
@@ -73,12 +74,17 @@ int main(int argc, char *argv[])
 	if (EXEC_MODE_SEND == execMode) {
 		Car_t car;
 		if (TRUE == parse_car(xmlPath, &car)) {
-			handle_string_parser(car);
 			handle_send_connection(car.attachmentPath, sockfd);
 		}
 	} 
-	else{
+	else if (EXEC_MODE_GET == execMode){
 		//TODO: handle get_connection
+		Car_t car;
+        if (TRUE == parse_car(xmlPath, &car)) {
+            handle_get_connection(car.attachmentPath, sockfd);
+
+
+        }
 	}
 	close(sockfd);
 
@@ -119,50 +125,38 @@ void handle_send_connection(char *path, int sockfd)
 	int n;
 
 	bzero(buff, sizeof(buff));
-	strcpy(buff, "CAR_DATA_INCOMING");
-
-	write(sockfd, buff, sizeof(buff));
-	write(sockfd, carData, sizeof(carData));
-
-	bzero(buff, sizeof(buff));
 	strcpy(buff, "FILE_INCOMING");
-
 	write(sockfd, buff, sizeof(buff));
 	sendFile(path, sockfd);
 
 	bzero(buff, sizeof(buff));
 	read(sockfd, buff, sizeof(buff));
-	//printf("Server: %s", buff);
+	printf("Server: %s", buff);
 }
-
-void handle_string_parser(struct _Car_t car)
+void handle_get_connection(char *path, int sockfd)
 {
-	strcat(carData, "Model: ");
-	strcat(carData, car.model);
-	strcat(carData, "\n");
+    int fd;
+    char buff[MAX];
+    struct stat stbuf;
+    bzero(buff, sizeof(buff));
+    strcpy(buff, "FILE_CONTENT_REQUEST");
+    write(sockfd, buff, sizeof(buff));
 
-	strcat(carData, "VIN: ");
-	strcat(carData, car.vin);
-	strcat(carData, "\n");
+    fd = open(path, O_RDONLY); // should be get from xml
 
-	strcat(carData, "Speed: ");
-	strcat(carData, car.speed);
-	strcat(carData, "\n");
+    if (0 == fd) {
+        printf("Cannot open file at path: %s", path);
 
-	strcat(carData, "Speed unit: ");
-	strcat(carData, car.speedUnit);
-	strcat(carData, "\n");
+    }
+    fstat(fd, &stbuf);
 
-	strcat(carData, "Date: ");
-	strcat(carData, car.date);
-	strcat(carData, "\n");
+    sendfile(sockfd, fd, 0, stbuf.st_size);
+    close(sockfd);
+    close(fd);
 
-	strcat(carData, "Time: ");
-	strcat(carData, car.time);
-	strcat(carData, "\n");
-
-	strcat(carData, "Timezone: ");
-	strcat(carData, car.timeZone);
+    bzero(buff, sizeof(buff));
+    read(sockfd, buff, sizeof(buff));
+   
 }
 
 void sendFile(char *path, int sockfd)

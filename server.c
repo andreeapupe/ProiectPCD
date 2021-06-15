@@ -264,28 +264,29 @@ void *socketThreadStandard(void *arg)
 
     recv(newSocket, &clientMessage, 1024, 0);
 
-    if (strcmp(clientMessage, "CAR_DATA_INCOMING") == 0)
+    if (strcmp(clientMessage, "FILE_INCOMING") == 0)
     {
-        recv(newSocket, &clientMessage, 1024, 0);
-
-        printf("%s\n", clientMessage);
-        pthread_mutex_lock(&lock_logs);
-        strcat(logs, clientMessage);
-        strcat(logs, "\n");
-        pthread_mutex_unlock(&lock_logs);
-
-        recv(newSocket, &clientMessage, 1024, 0);
-
-        if (strcmp(clientMessage, "FILE_INCOMING") == 0)
-        {
-            fprintf(stdout, "File: %s\n", clientMessage);
-            write_file(newSocket);
-        }
-        
+        fprintf(stdout, "File: %s\n", clientMessage);
+        write_file(newSocket);
     }
-    if(strstr(clientMessage, "INFO_INCOMING") != NULL)
+    else
     {
-        strcpy(source, clientMessage);
+        if(strstr(clientMessage, "INFO_INCOMING") != NULL)
+        {
+           strcpy(source, clientMessage);
+        }
+    }
+    if (strcmp(clientMessage, "FILE_CONTENT_REQUEST") == 0)
+    {
+        fprintf(stdout, "File: %s\n", clientMessage);
+
+    }
+    else
+    {
+        if(strstr(clientMessage, "INFO_OUTGOING") != NULL)
+        {
+            strcpy(source, clientMessage);
+        }
     }
 
     // // post/get request from web
