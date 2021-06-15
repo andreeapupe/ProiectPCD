@@ -281,7 +281,7 @@ void *socketThreadStandard(void *arg)
             fprintf(stdout, "File: %s\n", clientMessage);
             write_file(newSocket);
         }
-
+        
     }
     if(strstr(clientMessage, "INFO_INCOMING") != NULL)
     {
