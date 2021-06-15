@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import sys
 import client
+import os
 
 '''f = open("ProcessingTime.txt", "w")
 f.close()'''
@@ -95,7 +96,7 @@ class LaneDetectionClass:
 
     def detect_cars(self, image):
         # Haar Cascade
-        car_cascade = cv2.CascadeClassifier('cars.xml')
+        car_cascade = cv2.CascadeClassifier('../python/cars.xml')
 
         gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
 
